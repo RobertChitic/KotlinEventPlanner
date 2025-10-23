@@ -3,18 +3,22 @@ package com.eventplanning.ui
 import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
+import com.eventplanning.persistence.DataStore
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-class EventPanel(private val eventManager: EventManager) : JPanel() {
+class EventPanel(
+    private val eventManager: EventManager,
+    private val dataStore: DataStore
+) : JPanel() {
     private val eventListModel = DefaultListModel<String>()
     private val eventList = JList(eventListModel)
 
     private val titleField = JTextField(25)
-    private val dateField = JTextField(16) // Format: yyyy-MM-dd HH:mm
+    private val dateField = JTextField(16)
     private val venueCombo = JComboBox<VenueItem>()
     private val descriptionArea = JTextArea(3, 25)
     private val maxParticipantsField = JTextField(10)
@@ -128,10 +132,18 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
             )
 
             if (eventManager.addEvent(event)) {
-                JOptionPane.showMessageDialog(this,
-                    "Event created successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE)
+                // Save to database immediately
+                if (dataStore.saveEvent(event)) {
+                    JOptionPane.showMessageDialog(this,
+                        "Event created and saved successfully!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE)
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Event created but failed to save to database",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE)
+                }
                 clearFields()
                 refreshEventList()
             } else {
@@ -172,7 +184,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         maxParticipantsField.text = ""
     }
 
-    // Helper class for combo box
     private data class VenueItem(val venue: Venue) {
         override fun toString(): String =
             "${venue.name} (Capacity: ${venue.capacity})"

@@ -1,6 +1,6 @@
 package com.eventplanning.domain
 
-    class EventManger {
+    class EventManager {
         private val venues = mutableListOf<Venue>()
         private val events = mutableListOf<Event>()
         private val participants = mutableListOf<Participant>()

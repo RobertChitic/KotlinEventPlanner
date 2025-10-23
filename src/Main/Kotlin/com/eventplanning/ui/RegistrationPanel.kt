@@ -3,11 +3,15 @@ package com.eventplanning.ui
 import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Participant
+import com.eventplanning.persistence.DataStore
 import javax.swing.*
 import java.awt.*
 import java.time.format.DateTimeFormatter
 
-class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
+class RegistrationPanel(
+    private val eventManager: EventManager,
+    private val dataStore: DataStore
+) : JPanel() {
     private val registeredListModel = DefaultListModel<String>()
     private val registeredList = JList(registeredListModel)
 
@@ -126,46 +130,50 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         val event = eventItem.event
 
         try {
-            // Check capacity
-            val currentRegistrations = eventManager.getParticipantsForEvent(event.id).size
-            if (currentRegistrations >= event.maxParticipants) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Event is at full capacity (${event.maxParticipants} participants)",
-                    "Capacity Error",
-                    JOptionPane.ERROR_MESSAGE
-                )
-                return
-            }
-
-            // Check if already registered
-            if (eventManager.isParticipantRegistered(participant.id, event.id)) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "${participant.name} is already registered for this event",
-                    "Already Registered",
-                    JOptionPane.INFORMATION_MESSAGE
-                )
-                return
-            }
-
-            // Register participant
-            if (eventManager.registerParticipantToEvent(participant.id, event.id)) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Successfully registered ${participant.name} to ${event.title}",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                )
+            // Attempt to register using the Event's built-in method
+            if (event.registerParticipant(participant)) {
+                // Save the updated event to database
+                if (dataStore.saveEvent(event)) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Successfully registered ${participant.name} to ${event.title}",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE
+                    )
+                } else {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Registration successful but failed to save to database",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE
+                    )
+                }
                 updateRegisteredList(event)
                 updateEventDetails(event)
             } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Failed to register participant",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                )
+                // Registration failed - check why
+                if (event.isFull()) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Event is at full capacity (${event.maxParticipants} participants)",
+                        "Capacity Error",
+                        JOptionPane.ERROR_MESSAGE
+                    )
+                } else if (event.isParticipantRegistered(participant)) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "${participant.name} is already registered for this event",
+                        "Already Registered",
+                        JOptionPane.INFORMATION_MESSAGE
+                    )
+                } else {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Failed to register participant",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                    )
+                }
             }
         } catch (e: Exception) {
             JOptionPane.showMessageDialog(
@@ -202,7 +210,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         }
 
         val event = eventItem.event
-        val participants = eventManager.getParticipantsForEvent(event.id)
+        val participants = event.getRegisteredParticipants()
 
         if (selectedIndex >= participants.size) {
             JOptionPane.showMessageDialog(
@@ -224,13 +232,23 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         )
 
         if (confirm == JOptionPane.YES_OPTION) {
-            if (eventManager.unregisterParticipantFromEvent(participant.id, event.id)) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Successfully unregistered ${participant.name}",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                )
+            if (event.unregisterParticipant(participant)) {
+                // Save the updated event to database
+                if (dataStore.saveEvent(event)) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Successfully unregistered ${participant.name}",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE
+                    )
+                } else {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Unregistration successful but failed to save to database",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE
+                    )
+                }
                 updateRegisteredList(event)
                 updateEventDetails(event)
             } else {
@@ -246,7 +264,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun updateRegisteredList(event: Event) {
         registeredListModel.clear()
-        val participants = eventManager.getParticipantsForEvent(event.id)
+        val participants = event.getRegisteredParticipants()
         participants.forEach { participant ->
             registeredListModel.addElement(
                 "${participant.name} - ${participant.email} (${participant.organization})"
@@ -256,13 +274,13 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun updateEventDetails(event: Event) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-        val registeredCount = eventManager.getParticipantsForEvent(event.id).size
-        val availableSpots = event.maxParticipants - registeredCount
+        val registeredCount = event.getCurrentCapacity()
+        val availableSpots = event.getAvailableSpots()
         val percentFull = (registeredCount.toDouble() / event.maxParticipants * 100).toInt()
 
         val details = buildString {
             appendLine("Event: ${event.title}")
-            appendLine("=" .repeat(40))
+            appendLine("=".repeat(40))
             appendLine()
             appendLine("📅 Date/Time:")
             appendLine("   ${event.dateTime.format(formatter)}")
@@ -284,7 +302,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         }
 
         eventDetailsArea.text = details
-        eventDetailsArea.caretPosition = 0 // Scroll to top
+        eventDetailsArea.caretPosition = 0
     }
 
     private fun refreshCombos() {
@@ -312,7 +330,6 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         }
     }
 
-    // Helper classes for combo boxes
     private data class ParticipantItem(val participant: Participant) {
         override fun toString(): String =
             "${participant.name} (${participant.email})"

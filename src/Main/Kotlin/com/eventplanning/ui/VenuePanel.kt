@@ -2,11 +2,15 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
+import com.eventplanning.persistence.DataStore
 import javax.swing.*
 import java.awt.*
 import java.util.UUID
 
-class VenuePanel(private val eventManager: EventManager) : JPanel() {
+class VenuePanel(
+    private val eventManager: EventManager,
+    private val dataStore: DataStore
+) : JPanel() {
     private val venueListModel = DefaultListModel<String>()
     private val venueList = JList(venueListModel)
 
@@ -93,10 +97,18 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
             )
 
             if (eventManager.addVenue(venue)) {
-                JOptionPane.showMessageDialog(this,
-                    "Venue added successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE)
+                // Save to database immediately
+                if (dataStore.saveVenue(venue)) {
+                    JOptionPane.showMessageDialog(this,
+                        "Venue added and saved successfully!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE)
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Venue added but failed to save to database",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE)
+                }
                 clearFields()
                 refreshVenueList()
             } else {
