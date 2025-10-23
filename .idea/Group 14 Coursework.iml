@@ -6,6 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Kotlin" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Resource" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/Scala" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
