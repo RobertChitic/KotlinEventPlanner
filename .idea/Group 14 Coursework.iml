@@ -6,9 +6,11 @@
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Kotlin" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Resource" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/Main/Scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/Scala" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
+    <orderEntry type="library" name="scala-sdk-3.0.1" level="project" />
   </component>
 </module>
