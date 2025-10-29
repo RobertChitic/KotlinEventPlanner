@@ -2,11 +2,15 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Participant
+import com.eventplanning.persistence.DataStore
 import javax.swing.*
 import java.awt.*
 import java.util.UUID
 
-class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
+class ParticipantPanel(
+    private val eventManager: EventManager,
+    private val dataStore: DataStore
+) : JPanel() {
     private val participantListModel = DefaultListModel<String>()
     private val participantList = JList(participantListModel)
 
@@ -93,10 +97,18 @@ class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
             )
 
             if (eventManager.addParticipant(participant)) {
-                JOptionPane.showMessageDialog(this,
-                    "Participant added successfully!",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE)
+                // Save to database immediately
+                if (dataStore.saveParticipant(participant)) {
+                    JOptionPane.showMessageDialog(this,
+                        "Participant added and saved successfully!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE)
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Participant added but failed to save to database",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE)
+                }
                 clearFields()
                 refreshParticipantList()
             } else {
@@ -128,5 +140,4 @@ class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
         phoneField.text = ""
         organizationField.text = ""
     }
-
 }

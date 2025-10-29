@@ -1,11 +1,15 @@
 package com.eventplanning.ui
 
 import com.eventplanning.domain.*
+import com.eventplanning.persistence.DataStore
 import javax.swing.*
 import java.awt.BorderLayout
 import java.awt.Dimension
 
-class MainWindow(private val eventManager: EventManager) {
+class MainWindow(
+    private val eventManager: EventManager,
+    private val dataStore: DataStore  // Add this parameter
+) {
     private val frame = JFrame("Event Planning Application")
     private val tabbedPane = JTabbedPane()
 
@@ -27,7 +31,60 @@ class MainWindow(private val eventManager: EventManager) {
         val loadItem = JMenuItem("Load Data")
         val exitItem = JMenuItem("Exit")
 
-        exitItem.addActionListener { System.exit(0) }
+        // Save menu action
+        saveItem.addActionListener {
+            if (dataStore.saveAll(eventManager)) {
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "All data saved successfully!",
+                    "Save Successful",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+            } else {
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "Failed to save some data",
+                    "Save Error",
+                    JOptionPane.ERROR_MESSAGE
+                )
+            }
+        }
+
+        // Load menu action
+        loadItem.addActionListener {
+            val confirm = JOptionPane.showConfirmDialog(
+                frame,
+                "This will replace all current data. Continue?",
+                "Confirm Load",
+                JOptionPane.YES_NO_OPTION
+            )
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (dataStore.loadAll(eventManager)) {
+                    JOptionPane.showMessageDialog(
+                        frame,
+                        "Data loaded successfully!",
+                        "Load Successful",
+                        JOptionPane.INFORMATION_MESSAGE
+                    )
+                    // Refresh all panels
+                    refreshAllPanels()
+                } else {
+                    JOptionPane.showMessageDialog(
+                        frame,
+                        "Failed to load data",
+                        "Load Error",
+                        JOptionPane.ERROR_MESSAGE
+                    )
+                }
+            }
+        }
+
+        exitItem.addActionListener {
+            // Auto-save on exit
+            dataStore.saveAll(eventManager)
+            System.exit(0)
+        }
 
         fileMenu.add(saveItem)
         fileMenu.add(loadItem)
@@ -40,9 +97,15 @@ class MainWindow(private val eventManager: EventManager) {
     }
 
     private fun addTabs() {
-        tabbedPane.addTab("Venues", VenuePanel(eventManager))
-        tabbedPane.addTab("Events", EventPanel(eventManager))
-        tabbedPane.addTab("Participants", ParticipantPanel(eventManager))
-        tabbedPane.addTab("Registration", RegistrationPanel(eventManager))
+        tabbedPane.addTab("Venues", VenuePanel(eventManager, dataStore))
+        tabbedPane.addTab("Events", EventPanel(eventManager, dataStore))
+        tabbedPane.addTab("Participants", ParticipantPanel(eventManager, dataStore))
+        tabbedPane.addTab("Registration", RegistrationPanel(eventManager, dataStore))
+    }
+
+    private fun refreshAllPanels() {
+        // Remove all tabs and re-add them to refresh
+        tabbedPane.removeAll()
+        addTabs()
     }
 }
