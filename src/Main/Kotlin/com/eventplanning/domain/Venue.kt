@@ -9,7 +9,7 @@ data class Venue(
     val address: String,
     val facilities: List<String> = emptyList()
 ){
-    init{
+    init {
         require(capacity > 0) { "Capacity must be greater than zero." }
         require(name.isNotBlank()) { "Name must not be empty." }
         require(location.isNotBlank()) { "Location must not be empty." }
