@@ -1,5 +1,8 @@
 package com.eventplanning.domain
 
+
+import com.eventplanning.scheduling.SlotFinder // for finding slots for events
+
     class EventManager {
         private val venues = mutableListOf<Venue>()
         private val events = mutableListOf<Event>()
@@ -34,4 +37,10 @@ package com.eventplanning.domain
             participants.clear()
             venues.clear()
         }
+
+
+
+
+
+
     }
