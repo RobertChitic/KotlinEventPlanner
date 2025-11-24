@@ -4,6 +4,7 @@ import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import com.eventplanning.persistence.DataStore
+/* import com.eventplanning.scheduling.SlotFinder */
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
@@ -78,6 +79,13 @@ class EventPanel(
         // Buttons
         gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
+/**
+// Add "Find Available Venue" button (Part E - Scala)
+        val findVenueBtn = JButton("🔍 Find Available Venue")
+        findVenueBtn.toolTipText = "Use Scala algorithm to find available venues"
+        findVenueBtn.addActionListener { findAvailableVenue() }
+        buttonPanel.add(findVenueBtn)
+*/
 
         val refreshVenuesBtn = JButton("Refresh Venues")
         refreshVenuesBtn.addActionListener { refreshVenueCombo() }
@@ -188,4 +196,104 @@ class EventPanel(
         override fun toString(): String =
             "${venue.name} (Capacity: ${venue.capacity})"
     }
+/**
+    /**
+     * Part E - Slot Finder using Scala
+     * Finds available venues using functional Scala algorithm
+     */
+    private fun findAvailableVenue() {
+        try {
+            // Get required capacity from max participants field
+            val requiredCapacity = maxParticipantsField.text.toIntOrNull() ?: run {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter the required capacity in 'Max Participants' field first",
+                    "Input Required",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+                return
+            }
+
+            // Get proposed date/time
+            val dateTimeStr = dateField.text.trim()
+            if (dateTimeStr.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a date/time first",
+                    "Input Required",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+                return
+            }
+
+            val proposedDateTime = LocalDateTime.parse(
+                dateTimeStr,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            )
+
+            // Call Scala SlotFinder algorithm (Part E)
+            val venues = eventManager.getAllVenues()
+            val events = eventManager.getAllEvents()
+
+            val availableVenues = SlotFinder.findAllAvailableSlots(
+                venues,
+                events,
+                requiredCapacity,
+                proposedDateTime
+            )
+
+            // Display results
+            if (availableVenues.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "No available venues found for:\n" +
+                            "  Capacity: $requiredCapacity\n" +
+                            "  Date/Time: ${proposedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}\n\n" +
+                            "All venues are either too small or already booked.",
+                    "No Venues Available",
+                    JOptionPane.WARNING_MESSAGE
+                )
+            } else {
+                // Create dialog to show results
+                val message = buildString {
+                    appendLine("Found ${availableVenues.size} available venue(s):\n")
+                    availableVenues.forEachIndexed { index, venue ->
+                        appendLine("${index + 1}. ${venue.name}")
+                        appendLine("   Capacity: ${venue.capacity}")
+                        appendLine("   Location: ${venue.location}\n")
+                    }
+                    appendLine("\nSelect a venue from the dropdown to use it.")
+                }
+
+                JOptionPane.showMessageDialog(
+                    this,
+                    message,
+                    "Available Venues (Scala Algorithm)",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+
+                // Auto-select the first available venue
+                if (availableVenues.size > 0) {
+                    val firstVenue = availableVenues[0]
+                    for (i in 0 until venueCombo.itemCount) {
+                        val item = venueCombo.getItemAt(i)
+                        if (item.venue.id == firstVenue.id) {
+                            venueCombo.selectedIndex = i
+                            break
+                        }
+                    }
+                }
+            }
+
+        } catch (e: Exception) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Error finding available venues: ${e.message}",
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            )
+        }
+
+    }
+*/
 }

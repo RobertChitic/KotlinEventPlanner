@@ -27,10 +27,19 @@ class MainWindow(
         // Menu bar
         val menuBar = JMenuBar()
         val fileMenu = JMenu("File")
+/*
+        // Add Tools menu for scheduling (Part F)
+        val toolsMenu = JMenu("Tools")  // ← ADD THIS
+*/
         val saveItem = JMenuItem("Save All")
         val loadItem = JMenuItem("Load Data")
         val exitItem = JMenuItem("Exit")
-
+/*
+        // Add scheduler menu item (Part F - Scala)
+        val scheduleItem = JMenuItem("📅 Generate Schedule (Scala)")  // ← ADD THIS
+        scheduleItem.addActionListener { generateSchedule() }
+        toolsMenu.add(scheduleItem)
+*/
         // Save menu action
         saveItem.addActionListener {
             if (dataStore.saveAll(eventManager)) {
@@ -67,7 +76,6 @@ class MainWindow(
                         "Load Successful",
                         JOptionPane.INFORMATION_MESSAGE
                     )
-                    // Refresh all panels
                     refreshAllPanels()
                 } else {
                     JOptionPane.showMessageDialog(
@@ -81,7 +89,6 @@ class MainWindow(
         }
 
         exitItem.addActionListener {
-            // Auto-save on exit
             dataStore.saveAll(eventManager)
             System.exit(0)
         }
@@ -90,8 +97,10 @@ class MainWindow(
         fileMenu.add(loadItem)
         fileMenu.addSeparator()
         fileMenu.add(exitItem)
+/*
         menuBar.add(fileMenu)
-
+        menuBar.add(toolsMenu)  // ← ADD THIS
+*/
         frame.jMenuBar = menuBar
         frame.add(tabbedPane, BorderLayout.CENTER)
     }
@@ -108,4 +117,106 @@ class MainWindow(
         tabbedPane.removeAll()
         addTabs()
     }
+/*
+    /**
+     * Part F - Event Scheduler using Scala
+     * Generates a conflict-free schedule using functional Scala algorithm
+     */
+    private fun generateSchedule() {
+        val events = eventManager.getAllEvents()
+        val venues = eventManager.getAllVenues()
+
+        if (events.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                frame,
+                "No events to schedule.\nPlease create some events first.",
+                "No Events",
+                JOptionPane.INFORMATION_MESSAGE
+            )
+            return
+        }
+
+        if (venues.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                frame,
+                "No venues available.\nPlease add venues first.",
+                "No Venues",
+                JOptionPane.WARNING_MESSAGE
+            )
+            return
+        }
+
+        try {
+            // Call Scala EventScheduler (Part F)
+            val result = EventScheduler.scheduleEvents(events, venues)
+            val resultMap = EventScheduler.scheduleToMap(result)
+
+            val success = resultMap["success"] as Boolean
+
+            if (success) {
+                @Suppress("UNCHECKED_CAST")
+                val schedule = resultMap["schedule"] as java.util.ArrayList<java.util.Map<String, Any>>
+
+                val message = buildString {
+                    appendLine("✓ CONFLICT-FREE SCHEDULE GENERATED!")
+                    appendLine("=" .repeat(50))
+                    appendLine()
+                    appendLine("Successfully scheduled ${schedule.size} event(s):")
+                    appendLine()
+
+                    schedule.forEachIndexed { index, entry ->
+                        appendLine("${index + 1}. ${entry["eventTitle"]}")
+                        appendLine("   Venue: ${entry["venue"]}")
+                        appendLine("   Time: ${entry["dateTime"]}")
+                        appendLine()
+                    }
+
+                    appendLine("All events scheduled without conflicts!")
+                }
+
+                // Show in a scrollable text area dialog
+                val textArea = JTextArea(message)
+                textArea.isEditable = false
+                textArea.font = java.awt.Font("Monospaced", java.awt.Font.PLAIN, 12)
+
+                val scrollPane = JScrollPane(textArea)
+                scrollPane.preferredSize = Dimension(600, 400)
+
+                JOptionPane.showMessageDialog(
+                    frame,
+                    scrollPane,
+                    "Schedule Generated (Scala Algorithm)",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+
+            } else {
+                val errorMessage = resultMap["message"] as String
+                val failedCount = resultMap["failedCount"] as Int
+
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "✗ SCHEDULING FAILED\n\n" +
+                            "Error: $errorMessage\n\n" +
+                            "Failed to schedule $failedCount event(s)\n\n" +
+                            "Possible reasons:\n" +
+                            "  • Insufficient venue capacity\n" +
+                            "  • Time conflicts cannot be resolved\n" +
+                            "  • Not enough venues available",
+                    "Scheduling Error",
+                    JOptionPane.ERROR_MESSAGE
+                )
+            }
+
+        } catch (e: Exception) {
+            JOptionPane.showMessageDialog(
+                frame,
+                "Scheduling error: ${e.message}",
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            )
+            e.printStackTrace()
+        }
+    }
+
+ */
 }

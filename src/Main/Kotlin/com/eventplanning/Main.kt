@@ -2,6 +2,7 @@ package com.eventplanning
 
 import com.eventplanning.domain.EventManager
 import com.eventplanning.persistence.DataStore
+import com.eventplanning.scheduling.SlotFinder
 import com.eventplanning.ui.MainWindow
 import javax.swing.SwingUtilities
 import java.time.LocalDateTime
@@ -27,7 +28,7 @@ fun main() {
         dataStore.closeConnection()
     })
 
-    val slotFinder = SlotFinder()
+    val slotFinder =  SlotFinder()
 
         val venues = CollectionConverters.asScala(eventManager.getAllVenues()).toList()
     val events = CollectionConverters.asScala(eventManager.getAllEvents()).toList()
