@@ -4,7 +4,7 @@ import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import com.eventplanning.persistence.DataStore
-import com.eventplanning.scheduling.SlotFinder
+// import com.eventplanning.scheduling.SlotFinder <-- REMOVED to fix circular dependency
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
@@ -255,12 +255,18 @@ class EventPanel(
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
 
-            val availableVenues = SlotFinder.findAllAvailableSlots(
-                venues,
-                events,
-                requiredCapacity,
-                proposedDateTime
+            // FIXED: Use Reflection to call Scala SlotFinder to avoid circular dependency
+            val slotFinderClass = Class.forName("com.eventplanning.scheduling.SlotFinder")
+            val method = slotFinderClass.getMethod(
+                "findAllAvailableSlots",
+                java.util.List::class.java,
+                java.util.List::class.java,
+                Int::class.javaPrimitiveType,
+                java.time.LocalDateTime::class.java
             )
+
+            @Suppress("UNCHECKED_CAST")
+            val availableVenues = method.invoke(null, venues, events, requiredCapacity, proposedDateTime) as java.util.List<Venue>
 
             if (availableVenues.isEmpty()) {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
