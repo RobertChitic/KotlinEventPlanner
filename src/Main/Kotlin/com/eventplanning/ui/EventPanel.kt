@@ -4,7 +4,6 @@ import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import com.eventplanning.persistence.DataStore
-import com.eventplanning.scheduling.SlotFinder
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
@@ -255,12 +254,27 @@ class EventPanel(
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
 
-            val availableVenues = SlotFinder.findAllAvailableSlots(
+            // Use reflection to call SlotFinder.findAllAvailableSlots
+            val slotFinderClass = Class.forName("com.eventplanning.scheduling.SlotFinder")
+            val companionField = slotFinderClass.getField("MODULE$")
+            val slotFinderInstance = companionField.get(null)
+            
+            val findAllAvailableSlotsMethod = slotFinderClass.getMethod(
+                "findAllAvailableSlots",
+                java.util.List::class.java,
+                java.util.List::class.java,
+                Int::class.javaPrimitiveType,
+                LocalDateTime::class.java
+            )
+            
+            @Suppress("UNCHECKED_CAST")
+            val availableVenues = findAllAvailableSlotsMethod.invoke(
+                slotFinderInstance,
                 venues,
                 events,
                 requiredCapacity,
                 proposedDateTime
-            )
+            ) as java.util.List<Venue>
 
             if (availableVenues.isEmpty()) {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
