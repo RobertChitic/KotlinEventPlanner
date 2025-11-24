@@ -8,7 +8,9 @@ import com.eventplanning.scheduling.SlotFinder
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.UUID
 
 class EventPanel(
@@ -19,7 +21,8 @@ class EventPanel(
     private val eventList = JList(eventListModel)
 
     private val titleField = JTextField(25)
-    private val dateField = JTextField(16)
+    // Use a spinner for date/time instead of raw text
+    private val dateSpinner = JSpinner(SpinnerDateModel())
     private val venueCombo = JComboBox<VenueItem>()
     private val descriptionArea = JTextArea(3, 25)
     private val maxParticipantsField = JTextField(10)
@@ -49,12 +52,18 @@ class EventPanel(
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(titleField, gbc)
 
-        // Date/Time
+        // Date/Time (spinner)
         gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Date/Time:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
-        dateField.toolTipText = "Format: yyyy-MM-dd HH:mm (e.g., 2025-12-25 14:30)"
-        panel.add(dateField, gbc)
+
+        // Configure spinner to show date & time in a friendly format
+        val spinnerEditor = JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd HH:mm")
+        dateSpinner.editor = spinnerEditor
+        // Optional: set default value to "now" rounded to nearest hour
+        dateSpinner.value = Date()
+
+        panel.add(dateSpinner, gbc)
 
         // Venue
         gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE
@@ -113,10 +122,19 @@ class EventPanel(
     private fun createEvent() {
         try {
             val title = titleField.text.trim()
-            val dateTimeStr = dateField.text.trim()
             val venueItem = venueCombo.selectedItem as? VenueItem
             val description = descriptionArea.text.trim()
             val maxParticipants = maxParticipantsField.text.toIntOrNull()
+
+            if (title.isBlank()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter an event title",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
 
             if (venueItem == null) {
                 JOptionPane.showMessageDialog(
@@ -128,9 +146,11 @@ class EventPanel(
                 return
             }
 
-            val dateTime = LocalDateTime.parse(
-                dateTimeStr,
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            // Get LocalDateTime from spinner's Date value
+            val selectedDate = dateSpinner.value as Date
+            val dateTime = LocalDateTime.ofInstant(
+                selectedDate.toInstant(),
+                ZoneId.systemDefault()
             )
 
             val event = Event(
@@ -198,7 +218,8 @@ class EventPanel(
 
     private fun clearFields() {
         titleField.text = ""
-        dateField.text = ""
+        // Reset spinner to "now"
+        dateSpinner.value = Date()
         descriptionArea.text = ""
         maxParticipantsField.text = ""
     }
@@ -214,7 +235,6 @@ class EventPanel(
      */
     private fun findAvailableVenue() {
         try {
-            // Get required capacity from max participants field
             val requiredCapacity = maxParticipantsField.text.toIntOrNull() ?: run {
                 JOptionPane.showMessageDialog(
                     this,
@@ -225,24 +245,13 @@ class EventPanel(
                 return
             }
 
-            // Get proposed date/time
-            val dateTimeStr = dateField.text.trim()
-            if (dateTimeStr.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Please enter a date/time first",
-                    "Input Required",
-                    JOptionPane.INFORMATION_MESSAGE
-                )
-                return
-            }
-
-            val proposedDateTime = LocalDateTime.parse(
-                dateTimeStr,
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            // Use the same spinner for proposed date/time
+            val selectedDate = dateSpinner.value as Date
+            val proposedDateTime = LocalDateTime.ofInstant(
+                selectedDate.toInstant(),
+                ZoneId.systemDefault()
             )
 
-            // Call Scala SlotFinder algorithm (Part E)
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
 
@@ -253,23 +262,18 @@ class EventPanel(
                 proposedDateTime
             )
 
-            // Display results
             if (availableVenues.isEmpty()) {
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 JOptionPane.showMessageDialog(
                     this,
                     "No available venues found for:\n" +
                             "  Capacity: $requiredCapacity\n" +
-                            "  Date/Time: ${
-                                proposedDateTime.format(
-                                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                )
-                            }\n\n" +
+                            "  Date/Time: ${proposedDateTime.format(formatter)}\n\n" +
                             "All venues are either too small or already booked.",
                     "No Venues Available",
                     JOptionPane.WARNING_MESSAGE
                 )
             } else {
-                // Create dialog to show results
                 val message = buildString {
                     appendLine("Found ${availableVenues.size} available venue(s):\n")
                     availableVenues.forEachIndexed { index, venue ->
@@ -287,7 +291,6 @@ class EventPanel(
                     JOptionPane.INFORMATION_MESSAGE
                 )
 
-                // Auto-select the first available venue
                 if (availableVenues.size > 0) {
                     val firstVenue = availableVenues[0]
                     for (i in 0 until venueCombo.itemCount) {
