@@ -1,36 +1,24 @@
 package com.eventplanning.scheduling
 
-import com.eventplanning.domain.{Event, Venue}
+import _root_.com.eventplanning.domain.Event
+import _root_.com.eventplanning.domain.Venue
 import java.time.LocalDateTime
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 object EventScheduler {
 
-  /**
-   * Represents a scheduled event with its assigned venue and time slot.
-   */
   case class ScheduledEvent(
                              event: Event,
                              assignedVenue: Venue,
                              assignedDateTime: LocalDateTime
                            )
 
-  /**
-   * Result of the scheduling operation.
-   */
   sealed trait ScheduleResult
   case class Success(schedule: List[ScheduledEvent]) extends ScheduleResult
   case class Failure(message: String, problematicEvents: List[Event]) extends ScheduleResult
 
-  /**
-   * Creates a conflict-free schedule for a list of events across available venues.
-   * Uses a functional greedy algorithm with backtracking.
-   *
-   * @param events List of events to schedule (may or may not have venues assigned)
-   * @param venues List of available venues
-   * @return ScheduleResult containing either a successful schedule or failure information
-   */
+
   def scheduleEvents(
                       events: java.util.List[Event],
                       venues: java.util.List[Venue]
@@ -54,10 +42,6 @@ object EventScheduler {
     scheduleEventsRecursive(sortedEvents, venueList, List.empty)
   }
 
-  /**
-   * Recursive function to schedule events one by one.
-   * Pure functional approach with tail recursion.
-   */
   @tailrec
   private def scheduleEventsRecursive(
                                        remainingEvents: List[Event],
@@ -102,9 +86,6 @@ object EventScheduler {
       .find(venue => !hasConflict(event, venue, existingSchedule)) // Conflict check
   }
 
-  /**
-   * Checks if scheduling an event at a venue would create a conflict.
-   */
   private def hasConflict(
                            proposedEvent: Event,
                            proposedVenue: Venue,
@@ -123,10 +104,6 @@ object EventScheduler {
     }
   }
 
-  /**
-   * Checks if two time ranges overlap.
-   * Pure functional time comparison.
-   */
   private def timeOverlap(
                            start1: LocalDateTime,
                            end1: LocalDateTime,
@@ -137,10 +114,6 @@ object EventScheduler {
     start1.isBefore(end2) && end1.isAfter(start2)
   }
 
-  /**
-   * Converts ScheduleResult to a format easily consumable by Kotlin.
-   * Returns a Java Map for interop.
-   */
   def scheduleToMap(result: ScheduleResult): java.util.Map[String, Object] = {
     import scala.collection.mutable
 

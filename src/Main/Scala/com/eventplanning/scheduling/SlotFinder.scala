@@ -1,30 +1,19 @@
 package com.eventplanning.scheduling
 
-import com.eventplanning.domain.{Venue, Event}
+import com.eventplanning.domain.Venue
+import com.eventplanning.domain.Event
 import java.time.LocalDateTime
 import scala.jdk.CollectionConverters._
 
 object SlotFinder {
 
-  /**
-   * Finds the first available venue that meets capacity requirements
-   * and is available at or after the specified start date.
-   *
-   * Functional implementation using Scala collections.
-   *
-   * @param venues List of all available venues
-   * @param existingEvents List of already scheduled events
-   * @param requiredCapacity Minimum capacity needed
-   * @param earliestStartDate Earliest acceptable start date/time
-   * @return Option containing the first available venue, or None if no venue available
-   */
+
   def findAvailableSlot(
                          venues: java.util.List[Venue],
                          existingEvents: java.util.List[Event],
                          requiredCapacity: Int,
                          earliestStartDate: LocalDateTime
                        ): Option[Venue] = {
-
     // Convert Java collections to Scala collections for functional operations
     val venueList = venues.asScala.toList
     val eventList = existingEvents.asScala.toList
