@@ -2,7 +2,7 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Participant
-import com.eventplanning.persistence.DataStore
+import com.eventplanning.persistance.DataStore
 import javax.swing.*
 import java.awt.*
 import java.util.UUID

@@ -1,7 +1,7 @@
 package com.eventplanning
 
 import com.eventplanning.domain.EventManager
-import com.eventplanning.persistence.DataStore
+import com.eventplanning.persistance.DataStore
 import com.eventplanning.ui.MainWindow
 import javax.swing.SwingUtilities
 

@@ -1,7 +1,7 @@
 package com.eventplanning.ui
 
 import com.eventplanning.domain.*
-import com.eventplanning.persistence.DataStore
+import com.eventplanning.persistance.DataStore
 // import com.eventplanning.scheduling.EventScheduler <-- REMOVED to fix circular dependency
 import javax.swing.*
 import java.awt.BorderLayout

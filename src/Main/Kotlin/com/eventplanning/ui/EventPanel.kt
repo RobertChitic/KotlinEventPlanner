@@ -3,7 +3,7 @@ package com.eventplanning.ui
 import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
-import com.eventplanning.persistence.DataStore
+import com.eventplanning.persistance.DataStore
 // import com.eventplanning.scheduling.SlotFinder <-- REMOVED to fix circular dependency
 import javax.swing.*
 import java.awt.*
