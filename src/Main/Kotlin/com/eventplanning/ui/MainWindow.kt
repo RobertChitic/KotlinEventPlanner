@@ -2,6 +2,7 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.*
 import com.eventplanning.persistence.DataStore
+import com.eventplanning.scheduling.EventScheduler
 import javax.swing.*
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -27,19 +28,19 @@ class MainWindow(
         // Menu bar
         val menuBar = JMenuBar()
         val fileMenu = JMenu("File")
-/*
+
         // Add Tools menu for scheduling (Part F)
-        val toolsMenu = JMenu("Tools")  // ← ADD THIS
-*/
+        val toolsMenu = JMenu("Tools")
+
         val saveItem = JMenuItem("Save All")
         val loadItem = JMenuItem("Load Data")
         val exitItem = JMenuItem("Exit")
-/*
+
         // Add scheduler menu item (Part F - Scala)
-        val scheduleItem = JMenuItem("📅 Generate Schedule (Scala)")  // ← ADD THIS
+        val scheduleItem = JMenuItem("📅 Generate Schedule (Scala)")
         scheduleItem.addActionListener { generateSchedule() }
         toolsMenu.add(scheduleItem)
-*/
+
         // Save menu action
         saveItem.addActionListener {
             if (dataStore.saveAll(eventManager)) {
@@ -97,10 +98,9 @@ class MainWindow(
         fileMenu.add(loadItem)
         fileMenu.addSeparator()
         fileMenu.add(exitItem)
-/*
+
         menuBar.add(fileMenu)
-        menuBar.add(toolsMenu)  // ← ADD THIS
-*/
+        menuBar.add(toolsMenu)
         frame.jMenuBar = menuBar
         frame.add(tabbedPane, BorderLayout.CENTER)
     }
@@ -117,7 +117,7 @@ class MainWindow(
         tabbedPane.removeAll()
         addTabs()
     }
-/*
+
     /**
      * Part F - Event Scheduler using Scala
      * Generates a conflict-free schedule using functional Scala algorithm
@@ -159,7 +159,7 @@ class MainWindow(
 
                 val message = buildString {
                     appendLine("✓ CONFLICT-FREE SCHEDULE GENERATED!")
-                    appendLine("=" .repeat(50))
+                    appendLine("=".repeat(50))
                     appendLine()
                     appendLine("Successfully scheduled ${schedule.size} event(s):")
                     appendLine()
@@ -217,6 +217,4 @@ class MainWindow(
             e.printStackTrace()
         }
     }
-
- */
 }
