@@ -5,6 +5,7 @@ import com.eventplanning.persistence.DataStore
 import com.eventplanning.ui.MainWindow
 import javax.swing.SwingUtilities
 
+
 fun main() {
     // Initialize database
     val dataStore = DataStore()
