@@ -4,7 +4,7 @@ import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import com.eventplanning.persistence.DataStore
-/* import com.eventplanning.scheduling.SlotFinder */
+import com.eventplanning.scheduling.SlotFinder
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
@@ -79,13 +79,12 @@ class EventPanel(
         // Buttons
         gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
-/**
-// Add "Find Available Venue" button (Part E - Scala)
+
+        // Add "Find Available Venue" button (Part E - Scala)
         val findVenueBtn = JButton("🔍 Find Available Venue")
         findVenueBtn.toolTipText = "Use Scala algorithm to find available venues"
         findVenueBtn.addActionListener { findAvailableVenue() }
         buttonPanel.add(findVenueBtn)
-*/
 
         val refreshVenuesBtn = JButton("Refresh Venues")
         refreshVenuesBtn.addActionListener { refreshVenueCombo() }
@@ -120,15 +119,19 @@ class EventPanel(
             val maxParticipants = maxParticipantsField.text.toIntOrNull()
 
             if (venueItem == null) {
-                JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(
+                    this,
                     "Please select a venue",
                     "Input Error",
-                    JOptionPane.ERROR_MESSAGE)
+                    JOptionPane.ERROR_MESSAGE
+                )
                 return
             }
 
-            val dateTime = LocalDateTime.parse(dateTimeStr,
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            val dateTime = LocalDateTime.parse(
+                dateTimeStr,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            )
 
             val event = Event(
                 id = UUID.randomUUID().toString(),
@@ -142,29 +145,37 @@ class EventPanel(
             if (eventManager.addEvent(event)) {
                 // Save to database immediately
                 if (dataStore.saveEvent(event)) {
-                    JOptionPane.showMessageDialog(this,
+                    JOptionPane.showMessageDialog(
+                        this,
                         "Event created and saved successfully!",
                         "Success",
-                        JOptionPane.INFORMATION_MESSAGE)
+                        JOptionPane.INFORMATION_MESSAGE
+                    )
                 } else {
-                    JOptionPane.showMessageDialog(this,
+                    JOptionPane.showMessageDialog(
+                        this,
                         "Event created but failed to save to database",
                         "Warning",
-                        JOptionPane.WARNING_MESSAGE)
+                        JOptionPane.WARNING_MESSAGE
+                    )
                 }
                 clearFields()
                 refreshEventList()
             } else {
-                JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(
+                    this,
                     "Failed to create event",
                     "Error",
-                    JOptionPane.ERROR_MESSAGE)
+                    JOptionPane.ERROR_MESSAGE
+                )
             }
         } catch (e: Exception) {
-            JOptionPane.showMessageDialog(this,
+            JOptionPane.showMessageDialog(
+                this,
                 "Error: ${e.message}",
                 "Input Error",
-                JOptionPane.ERROR_MESSAGE)
+                JOptionPane.ERROR_MESSAGE
+            )
         }
     }
 
@@ -196,7 +207,7 @@ class EventPanel(
         override fun toString(): String =
             "${venue.name} (Capacity: ${venue.capacity})"
     }
-/**
+
     /**
      * Part E - Slot Finder using Scala
      * Finds available venues using functional Scala algorithm
@@ -248,7 +259,11 @@ class EventPanel(
                     this,
                     "No available venues found for:\n" +
                             "  Capacity: $requiredCapacity\n" +
-                            "  Date/Time: ${proposedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}\n\n" +
+                            "  Date/Time: ${
+                                proposedDateTime.format(
+                                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                )
+                            }\n\n" +
                             "All venues are either too small or already booked.",
                     "No Venues Available",
                     JOptionPane.WARNING_MESSAGE
@@ -293,7 +308,5 @@ class EventPanel(
                 JOptionPane.ERROR_MESSAGE
             )
         }
-
     }
-*/
 }
