@@ -2,7 +2,6 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.*
 import com.eventplanning.persistence.DataStore
-import com.eventplanning.scheduling.EventScheduler
 import javax.swing.*
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -147,9 +146,25 @@ class MainWindow(
         }
 
         try {
-            // Call Scala EventScheduler (Part F)
-            val result = EventScheduler.scheduleEvents(events, venues)
-            val resultMap = EventScheduler.scheduleToMap(result)
+            // Use reflection to call EventScheduler methods to break circular dependency
+            val eventSchedulerClass = Class.forName("com.eventplanning.scheduling.EventScheduler$")
+            val eventSchedulerInstance = eventSchedulerClass.getField("MODULE$").get(null)
+            
+            // Call scheduleEvents method
+            val scheduleEventsMethod = eventSchedulerClass.getMethod(
+                "scheduleEvents",
+                java.util.List::class.java,
+                java.util.List::class.java
+            )
+            val result = scheduleEventsMethod.invoke(eventSchedulerInstance, events, venues)
+            
+            // Call scheduleToMap method
+            val scheduleToMapMethod = eventSchedulerClass.getMethod(
+                "scheduleToMap",
+                Class.forName("com.eventplanning.scheduling.EventScheduler\$ScheduleResult")
+            )
+            @Suppress("UNCHECKED_CAST")
+            val resultMap = scheduleToMapMethod.invoke(eventSchedulerInstance, result) as java.util.Map<String, Any>
 
             val success = resultMap["success"] as Boolean
 
