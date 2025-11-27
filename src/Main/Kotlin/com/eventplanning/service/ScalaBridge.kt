@@ -1,63 +1,128 @@
-package com.eventplanning.service
+package com.eventplanning. service
 
-import com.eventplanning.domain.Event
-import com.eventplanning.domain.Venue
+import com. eventplanning.domain.Event
+import com.eventplanning. domain.Venue
 import java.time.LocalDateTime
+import java.time.Duration
 
 /**
- * A dedicated bridge to handle communication with Scala components.
- * This isolates the reflection logic, keeping the UI clean and decoupled.
+ * Bridge object for communication between Kotlin and Scala components.
+ * Uses reflection to invoke Scala code, keeping the UI layer decoupled from Scala dependencies.
  */
 object ScalaBridge {
 
-    // --- Slot Finder (Part E) ---
+    private const val SLOT_FINDER_CLASS = "com.eventplanning.scheduling.SlotFinder"
+    private const val EVENT_SCHEDULER_CLASS = "com.eventplanning. scheduling.EventScheduler"
+
+    /**
+     * Result class for slot finding operations.
+     */
+    sealed class SlotFinderResult {
+        data class Success(val venues: List<Venue>) : SlotFinderResult()
+        data class Error(val message: String) : SlotFinderResult()
+    }
+
+    /**
+     * Result class for scheduling operations.
+     */
+    sealed class SchedulerResult {
+        data class Success(val schedule: List<ScheduleEntry>) : SchedulerResult()
+        data class Error(val message: String, val failedCount: Int) : SchedulerResult()
+    }
+
+    data class ScheduleEntry(
+        val eventId: String,
+        val eventTitle: String,
+        val venue: String,
+        val dateTime: String
+    )
+
+    /**
+     * Finds all available venues for a proposed event.
+     * Invokes the Scala SlotFinder algorithm.
+     */
     fun findAvailableVenues(
         venues: List<Venue>,
         events: List<Event>,
         requiredCapacity: Int,
         dateTime: LocalDateTime,
-        duration: java.time.Duration
-    ): List<Venue> {
-        try {
-            val clazz = Class.forName("com.eventplanning.scheduling.SlotFinder")
-            val method = clazz.getMethod(
+        duration: Duration
+    ): SlotFinderResult {
+        return try {
+            val clazz = Class. forName(SLOT_FINDER_CLASS)
+            val method = clazz. getMethod(
                 "findAllAvailableSlots",
                 java.util.List::class.java,
-                java.util.List::class.java,
+                java.util. List::class.java,
                 Int::class.javaPrimitiveType,
-                java.time.LocalDateTime::class.java,
-                java.time.Duration::class.java
+                LocalDateTime::class.java,
+                Duration::class.java
             )
 
             @Suppress("UNCHECKED_CAST")
-            // FIX: Added 'duration' to the arguments list below
-            return method.invoke(null, venues, events, requiredCapacity, dateTime, duration) as List<Venue>
+            val result = method.invoke(null, venues, events, requiredCapacity, dateTime, duration) as List<Venue>
+            SlotFinderResult. Success(result)
+        } catch (e: ClassNotFoundException) {
+            SlotFinderResult.Error("Scala SlotFinder not found.  Ensure Scala components are compiled.")
         } catch (e: Exception) {
-            throw RuntimeException("Failed to connect to Scala SlotFinder: ${e.message}", e)
+            val cause = e.cause?. message ?: e.message ?: "Unknown error"
+            SlotFinderResult.Error("SlotFinder error: $cause")
         }
     }
 
-    // --- Event Scheduler (Part F) ---
-    fun generateSchedule(events: List<Event>, venues: List<Venue>): Map<String, Any> {
-        try {
-            val schedulerClass = Class.forName("com.eventplanning.scheduling.EventScheduler")
-            val resultClass = Class.forName("com.eventplanning.scheduling.EventScheduler\$ScheduleResult")
+    /**
+     * Generates a conflict-free schedule for the given events.
+     * Invokes the Scala EventScheduler algorithm.
+     */
+    fun generateSchedule(events: List<Event>, venues: List<Venue>): SchedulerResult {
+        return try {
+            val schedulerClass = Class. forName(EVENT_SCHEDULER_CLASS)
+            val resultClass = Class.forName("$EVENT_SCHEDULER_CLASS\$ScheduleResult")
 
-            // 1. Run the scheduleEvents method
+            // Invoke scheduleEvents method
             val scheduleMethod = schedulerClass.getMethod(
                 "scheduleEvents",
                 java.util.List::class.java,
-                java.util.List::class.java
+                java.util. List::class.java
             )
-            val result = scheduleMethod.invoke(null, events, venues)
+            val result = scheduleMethod. invoke(null, events, venues)
 
-            // 2. Convert the result to a friendly Map
+            // Convert result to a map for easier processing
             val mapMethod = schedulerClass.getMethod("scheduleToMap", resultClass)
 
             @Suppress("UNCHECKED_CAST")
-            return mapMethod.invoke(null, result) as Map<String, Any>
+            val resultMap = mapMethod. invoke(null, result) as Map<String, Any>
+
+            parseSchedulerResult(resultMap)
+        } catch (e: ClassNotFoundException) {
+            SchedulerResult.Error("Scala EventScheduler not found. Ensure Scala components are compiled.", 0)
         } catch (e: Exception) {
-            throw RuntimeException("Failed to connect to Scala EventScheduler: ${e.message}", e)
+            val cause = e.cause?.message ?: e.message ?: "Unknown error"
+            SchedulerResult. Error("Scheduler error: $cause", 0)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseSchedulerResult(resultMap: Map<String, Any>): SchedulerResult {
+        val success = resultMap["success"] as?  Boolean ?: false
+
+        return if (success) {
+            val scheduleList = resultMap["schedule"] as? java.util.ArrayList<java.util.Map<String, Any>>
+                ?: return SchedulerResult. Error("Invalid schedule format", 0)
+
+            val entries = scheduleList. map { entry ->
+                ScheduleEntry(
+                    eventId = entry["eventId"]?.toString() ?: "",
+                    eventTitle = entry["eventTitle"]?.toString() ?: "",
+                    venue = entry["venue"]?.toString() ?: "",
+                    dateTime = entry["dateTime"]?. toString() ?: ""
+                )
+            }
+            SchedulerResult.Success(entries)
+        } else {
+            val message = resultMap["message"] as? String ?: "Unknown scheduling error"
+            val failedCount = (resultMap["failedCount"] as? Int) ?: 0
+            SchedulerResult.Error(message, failedCount)
         }
     }
 }

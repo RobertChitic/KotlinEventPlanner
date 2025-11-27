@@ -8,37 +8,41 @@ import javax.swing.UIManager
 import com.formdev.flatlaf.FlatLightLaf
 
 fun main() {
+    // Initialize Look and Feel
     try {
-        // Standard Setup - No experimental flags
-        FlatLightLaf.setup()
-
+        FlatLightLaf. setup()
         UIManager.put("Button.arc", 12)
         UIManager.put("Component.arc", 12)
         UIManager.put("ProgressBar.arc", 12)
         UIManager.put("TextComponent.arc", 12)
     } catch (e: Exception) {
-        println("Failed to initialize FlatLaf theme.")
+        System.err.println("Failed to initialize FlatLaf theme: ${e.message}")
     }
 
+    // Initialize database
     val repository = DataStore()
     repository.connect()
-    repository.initializeStorage()
+    repository. initializeStorage()
 
+    // Initialize event manager
     val eventManager = EventManager(repository)
 
     if (eventManager.initializeData()) {
         println("Data loaded successfully.")
     } else {
-        println("Warning: Failed to load some data.")
+        System.err.println("Warning: Failed to load some data.")
     }
 
+    // Launch UI
     SwingUtilities.invokeLater {
         val mainWindow = MainWindow(eventManager)
         mainWindow.show()
     }
 
-    Runtime.getRuntime().addShutdownHook(Thread {
-        eventManager.saveAllData()
-        repository.disconnect()
+    // Graceful shutdown
+    Runtime.getRuntime(). addShutdownHook(Thread {
+        println("Shutting down...")
+        eventManager. saveAllData()
+        repository. disconnect()
     })
 }
