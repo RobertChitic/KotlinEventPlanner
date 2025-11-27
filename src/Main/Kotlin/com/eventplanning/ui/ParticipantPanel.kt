@@ -3,7 +3,10 @@ package com.eventplanning.ui
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Participant
 import javax.swing.*
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
+import javax.swing.table.TableRowSorter
 import java.awt.*
 import java.util.UUID
 
@@ -11,37 +14,41 @@ class ParticipantPanel(
     private val eventManager: EventManager
 ) : JPanel() {
 
-    // --- TABLE (Left Side) ---
+    private var displayedParticipants: List<Participant> = emptyList()
+
     private val tableModel = object : DefaultTableModel(arrayOf("Name", "Email", "Organization", "Phone"), 0) {
         override fun isCellEditable(row: Int, column: Int) = false
     }
     private val participantTable = JTable(tableModel)
+    private val tableSorter = TableRowSorter(tableModel)
 
-    // --- FORM (Right Side) ---
+    // Form
+    private val searchField = JTextField(15)
     private val nameField = JTextField(20)
     private val emailField = JTextField(20)
     private val phoneField = JTextField(15)
     private val organizationField = JTextField(20)
     private val addButton = JButton("Add Participant")
-    private val clearButton = JButton("Clear Form")
+    private val clearButton = JButton("Clear")
+    private val deleteButton = JButton("❌ Delete Participant")
 
     init {
         layout = BorderLayout()
 
-        // 1. Table Styling
+        participantTable.rowSorter = tableSorter
         participantTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         participantTable.rowHeight = 25
         participantTable.showHorizontalLines = true
         participantTable.gridColor = Color.LIGHT_GRAY
         participantTable.fillsViewportHeight = true
 
-        // 2. Placeholders
-        nameField.putClientProperty("JTextField.placeholderText", "Full Name")
-        emailField.putClientProperty("JTextField.placeholderText", "user@example.com")
-        phoneField.putClientProperty("JTextField.placeholderText", "Optional")
-        organizationField.putClientProperty("JTextField.placeholderText", "Company / Uni")
+        searchField.putClientProperty("JTextField.placeholderText", "🔍 Filter...")
 
-        // 3. Split Layout
+        deleteButton.foreground = Color.WHITE
+        deleteButton.background = Color(220, 53, 69)
+        deleteButton.isContentAreaFilled = false
+        deleteButton.isOpaque = true
+
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
         splitPane.leftComponent = createTablePanel()
         splitPane.rightComponent = createFormPanel()
@@ -50,7 +57,6 @@ class ParticipantPanel(
 
         add(splitPane, BorderLayout.CENTER)
 
-        // 4. Data
         refreshParticipantTable()
         setupListeners()
     }
@@ -58,49 +64,78 @@ class ParticipantPanel(
     private fun createTablePanel(): JPanel {
         val panel = JPanel(BorderLayout())
         panel.border = BorderFactory.createTitledBorder("Participants Directory")
+
+        val topPanel = JPanel(FlowLayout(FlowLayout.LEFT))
+        topPanel.add(JLabel("Filter:"))
+        topPanel.add(searchField)
+        panel.add(topPanel, BorderLayout.NORTH)
+
         panel.add(JScrollPane(participantTable), BorderLayout.CENTER)
+
+        val btnPanel = JPanel(FlowLayout(FlowLayout.LEFT))
+        btnPanel.add(deleteButton)
+        panel.add(btnPanel, BorderLayout.SOUTH)
+
         return panel
     }
 
+    // FIXED: Safe GridBagLayout logic here too
     private fun createFormPanel(): JPanel {
-        val panel = JPanel(GridBagLayout())
-        panel.border = BorderFactory.createTitledBorder("Register New Person")
+        val mainPanel = JPanel(BorderLayout())
+        mainPanel.border = BorderFactory.createTitledBorder("Register New Person")
+
+        val formPanel = JPanel(GridBagLayout())
         val gbc = GridBagConstraints()
-        gbc.insets = Insets(10, 10, 10, 10)
+        gbc.insets = Insets(5, 5, 5, 5)
         gbc.anchor = GridBagConstraints.WEST
         gbc.fill = GridBagConstraints.HORIZONTAL
 
-        var gridY = 0
-        fun addRow(label: String, component: JComponent) {
-            gbc.gridx = 0; gbc.gridy = gridY; gbc.weightx = 0.0
-            panel.add(JLabel(label), gbc)
-            gbc.gridx = 1; gbc.weightx = 1.0
-            panel.add(component, gbc)
-            gridY++
+        fun resetGBC(x: Int, y: Int) {
+            gbc.gridx = x; gbc.gridy = y; gbc.gridwidth = 1; gbc.weightx = 0.0
         }
 
-        addRow("Name:", nameField)
-        addRow("Email:", emailField)
-        addRow("Phone:", phoneField)
-        addRow("Organization:", organizationField)
+        resetGBC(0, 0); formPanel.add(JLabel("Name:"), gbc)
+        resetGBC(1, 0); gbc.weightx = 1.0; formPanel.add(nameField, gbc)
 
-        // Spacer to push buttons down
-        gbc.gridy = gridY; gbc.weighty = 1.0
-        panel.add(JPanel(), gbc)
+        resetGBC(0, 1); formPanel.add(JLabel("Email:"), gbc)
+        resetGBC(1, 1); gbc.weightx = 1.0; formPanel.add(emailField, gbc)
+
+        resetGBC(0, 2); formPanel.add(JLabel("Phone:"), gbc)
+        resetGBC(1, 2); gbc.weightx = 1.0; formPanel.add(phoneField, gbc)
+
+        resetGBC(0, 3); formPanel.add(JLabel("Organization:"), gbc)
+        resetGBC(1, 3); gbc.weightx = 1.0; formPanel.add(organizationField, gbc)
+
+        // Push everything up to avoid vertical centering
+        val spacer = JPanel()
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.VERTICAL
+        formPanel.add(spacer, gbc)
+
+        mainPanel.add(formPanel, BorderLayout.CENTER)
 
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
         buttonPanel.add(clearButton)
         buttonPanel.add(addButton)
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH)
 
-        gbc.gridy = gridY + 1; gbc.weighty = 0.0
-        panel.add(buttonPanel, gbc)
-
-        return panel
+        return mainPanel
     }
 
     private fun setupListeners() {
         addButton.addActionListener { addParticipant() }
         clearButton.addActionListener { clearFields() }
+        deleteButton.addActionListener { deleteSelectedParticipant() }
+
+        searchField.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent?) { filter() }
+            override fun removeUpdate(e: DocumentEvent?) { filter() }
+            override fun changedUpdate(e: DocumentEvent?) { filter() }
+            fun filter() {
+                val text = searchField.text
+                if (text.trim().isEmpty()) tableSorter.setRowFilter(null)
+                else tableSorter.setRowFilter(RowFilter.regexFilter("(?i)$text"))
+            }
+        })
     }
 
     private fun addParticipant() {
@@ -115,21 +150,14 @@ class ParticipantPanel(
         }
 
         try {
-            val p = Participant(
-                id = UUID.randomUUID().toString(),
-                name = name,
-                email = email,
-                phone = phone,
-                organization = org
-            )
-
+            val p = Participant(UUID.randomUUID().toString(), name, email, phone, org)
             addButton.isEnabled = false
             val worker = object : SwingWorker<Boolean, Void>() {
                 override fun doInBackground() = eventManager.addParticipant(p)
                 override fun done() {
                     addButton.isEnabled = true
                     if (get()) {
-                        JOptionPane.showMessageDialog(this@ParticipantPanel, "Participant Added!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                        JOptionPane.showMessageDialog(this@ParticipantPanel, "Added!", "Success", JOptionPane.INFORMATION_MESSAGE)
                         refreshParticipantTable()
                         clearFields()
                     } else {
@@ -138,23 +166,33 @@ class ParticipantPanel(
                 }
             }
             worker.execute()
-
         } catch (e: Exception) {
             JOptionPane.showMessageDialog(this, e.message, "Error", JOptionPane.ERROR_MESSAGE)
         }
     }
 
+    private fun deleteSelectedParticipant() {
+        val viewRow = participantTable.selectedRow
+        if (viewRow == -1) { JOptionPane.showMessageDialog(this, "Select a participant.", "Error", JOptionPane.WARNING_MESSAGE); return }
+        val modelRow = participantTable.convertRowIndexToModel(viewRow)
+        val participantToDelete = displayedParticipants.getOrNull(modelRow) ?: return
+
+        if (JOptionPane.showConfirmDialog(this, "Delete '${participantToDelete.name}'?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            val worker = object : SwingWorker<Boolean, Void>() {
+                override fun doInBackground(): Boolean = eventManager.deleteParticipant(participantToDelete)
+                override fun done() { if (get()) { refreshParticipantTable(); JOptionPane.showMessageDialog(this@ParticipantPanel, "Deleted.", "Success", JOptionPane.INFORMATION_MESSAGE) } else JOptionPane.showMessageDialog(this@ParticipantPanel, "Failed.", "Error", JOptionPane.ERROR_MESSAGE) }
+            }
+            worker.execute()
+        }
+    }
+
     private fun refreshParticipantTable() {
         tableModel.rowCount = 0
-        eventManager.getAllParticipants().forEach { p ->
+        displayedParticipants = eventManager.getAllParticipants()
+        displayedParticipants.forEach { p ->
             tableModel.addRow(arrayOf(p.name, p.email, p.organization, p.phone))
         }
     }
 
-    private fun clearFields() {
-        nameField.text = ""
-        emailField.text = ""
-        phoneField.text = ""
-        organizationField.text = ""
-    }
+    private fun clearFields() { nameField.text=""; emailField.text=""; phoneField.text=""; organizationField.text=""; participantTable.clearSelection() }
 }
