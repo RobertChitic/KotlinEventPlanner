@@ -1,5 +1,4 @@
-// File: persistence/DataStore.kt
-package com.eventplanning.persistence
+package com.eventplanning.persistance
 
 import com.eventplanning.domain.*
 import java.sql.Connection
@@ -9,10 +8,7 @@ import java.time.LocalDateTime
 import java.time.Duration
 import java.time.format.DateTimeFormatter
 
-/**
- * DataStore handles all database persistence operations
- * Integrates with existing domain classes and EventManager
- */
+
 class DataStore {
     private val dbUrl = "jdbc:sqlite:events.db"
     private var connection: Connection? = null
@@ -20,13 +16,20 @@ class DataStore {
 
     fun connectToDatabase() {
         try {
+            // 1. Explicitly load the driver class
+            Class.forName("org.sqlite.JDBC")
+
+            // 2. Establish connection
             connection = DriverManager.getConnection(dbUrl)
             println("Connected to the database successfully.")
+
+        } catch (e: ClassNotFoundException) {
+            println("Error: SQLite Driver not found. Please add the JAR to your library.")
+            e.printStackTrace()
         } catch (e: SQLException) {
             println("Error connecting to the database: ${e.message}")
         }
     }
-
     fun createTables() {
         val conn = connection
         if (conn == null || conn.isClosed) {
@@ -385,51 +388,3 @@ class DataStore {
         }
     }
 }
-
-// ============================================
-// File: Main.kt - Application Entry Point
-// ============================================
-
-/*
-package com.eventplanning
-
-import com.eventplanning.domain.EventManager
-import com.eventplanning.persistence.DataStore
-import com.eventplanning.ui.MainWindow
-import javax.swing.SwingUtilities
-import javax.swing.UIManager
-
-fun main() {
-    // Set system look and feel
-    try {
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-    } catch (e: Exception) {
-        println("Could not set system look and feel: ${e.message}")
-    }
-
-    // Initialize database
-    val dataStore = DataStore()
-    dataStore.connectToDatabase()
-    dataStore.createTables()
-
-    // Initialize EventManager
-    val eventManager = EventManager()
-
-    // Load existing data from database
-    dataStore.loadAll(eventManager)
-
-    // Create and show GUI
-    val mainWindow = MainWindow(eventManager, dataStore)
-
-    SwingUtilities.invokeLater {
-        mainWindow.show()
-    }
-
-    // Save data when application closes
-    Runtime.getRuntime().addShutdownHook(Thread {
-        println("Application closing, saving data...")
-        dataStore.saveAll(eventManager)
-        dataStore.closeConnection()
-    })
-}
-*/
