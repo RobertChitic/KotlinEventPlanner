@@ -29,7 +29,7 @@ data class Event(
         require(maxParticipants <= venue.capacity) {
             "Max participants ($maxParticipants) cannot exceed venue capacity (${venue.capacity})."
         }
-        require(! duration.isNegative && !duration.isZero) {
+        require(!duration.isNegative && !duration.isZero) {
             "Duration must be positive."
         }
     }
@@ -64,7 +64,7 @@ data class Event(
      * @return true if participant was found and removed, false otherwise
      */
     fun unregisterParticipant(participant: Participant): Boolean {
-        return registeredParticipants.removeIf { it. id == participant.id }
+        return registeredParticipants.removeIf { it.id == participant.id }
     }
 
     /**
@@ -97,7 +97,7 @@ data class Event(
      * Checks if this event conflicts with another event (same venue, overlapping time).
      */
     fun conflictsWith(other: Event): Boolean {
-        if (this. venue. id != other.venue.id) {
+        if (this.venue.id != other.venue.id) {
             return false
         }
 
@@ -114,7 +114,7 @@ data class Event(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other ! is Event) return false
+        if (other !is Event) return false
         return id == other.id
     }
 

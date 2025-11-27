@@ -42,9 +42,9 @@ class EventManager(private val repository: Repository) {
      */
     fun saveAllData(): Boolean {
         var success = true
-        venues.forEach { if (! repository.saveVenue(it)) success = false }
+        venues.forEach { if (!repository.saveVenue(it)) success = false }
         participants.forEach { if (!repository.saveParticipant(it)) success = false }
-        events.forEach { if (!repository. saveEvent(it)) success = false }
+        events.forEach { if (!repository.saveEvent(it)) success = false }
         return success
     }
 
@@ -55,8 +55,8 @@ class EventManager(private val repository: Repository) {
      * @return true if successful, false if ID already exists or save failed
      */
     fun addVenue(venue: Venue): Boolean {
-        if (venues.any { it. id == venue.id }) return false
-        if (! repository.saveVenue(venue)) return false
+        if (venues.any { it.id == venue.id }) return false
+        if (!repository.saveVenue(venue)) return false
         venues.add(venue)
         return true
     }
@@ -66,12 +66,12 @@ class EventManager(private val repository: Repository) {
      * @return true if successful, false if venue is used by events or delete failed
      */
     fun deleteVenue(venue: Venue): Boolean {
-        if (events.any { it. venue.id == venue.id }) {
+        if (events.any { it.venue.id == venue.id }) {
             return false // Cannot delete venue if events depend on it
         }
 
         if (repository.deleteVenue(venue.id)) {
-            venues. removeIf { it. id == venue.id }
+            venues.removeIf { it.id == venue.id }
             return true
         }
         return false
@@ -84,8 +84,8 @@ class EventManager(private val repository: Repository) {
      * @return true if successful, false if ID already exists or save failed
      */
     fun addParticipant(participant: Participant): Boolean {
-        if (participants.any { it.id == participant. id }) return false
-        if (!repository. saveParticipant(participant)) return false
+        if (participants.any { it.id == participant.id }) return false
+        if (!repository.saveParticipant(participant)) return false
         participants.add(participant)
         return true
     }
@@ -112,7 +112,7 @@ class EventManager(private val repository: Repository) {
      * @return true if successful, false if ID exists, conflicts detected, or save failed
      */
     fun addEvent(event: Event): Boolean {
-        if (events. any { it.id == event.id }) return false
+        if (events.any { it.id == event.id }) return false
 
         val hasConflict = events.any { existingEvent ->
             event.conflictsWith(existingEvent)
@@ -120,7 +120,7 @@ class EventManager(private val repository: Repository) {
 
         if (hasConflict) return false
 
-        if (! repository.saveEvent(event)) return false
+        if (!repository.saveEvent(event)) return false
 
         events.add(event)
         return true
@@ -141,7 +141,7 @@ class EventManager(private val repository: Repository) {
      */
     fun deleteEvent(event: Event): Boolean {
         if (repository.deleteEvent(event.id)) {
-            events.removeIf { it. id == event.id }
+            events.removeIf { it.id == event.id }
             return true
         }
         return false
@@ -149,12 +149,12 @@ class EventManager(private val repository: Repository) {
 
     // ==================== READ OPERATIONS ====================
 
-    fun getAllVenues(): List<Venue> = venues. toList()
-    fun getVenueById(id: String): Venue?  = venues.find { it.id == id }
+    fun getAllVenues(): List<Venue> = venues.toList()
+    fun getVenueById(id: String): Venue? = venues.find { it.id == id }
     fun getAllEvents(): List<Event> = events.toList()
-    fun getEventById(id: String): Event?  = events.find { it.id == id }
+    fun getEventById(id: String): Event? = events.find { it.id == id }
     fun getAllParticipants(): List<Participant> = participants.toList()
-    fun getParticipantById(id: String): Participant? = participants.find { it. id == id }
+    fun getParticipantById(id: String): Participant? = participants.find { it.id == id }
 
     /**
      * Returns events sorted by date/time.
@@ -165,5 +165,5 @@ class EventManager(private val repository: Repository) {
      * Returns events at a specific venue.
      */
     fun getEventsByVenue(venueId: String): List<Event> =
-        events.filter { it.venue. id == venueId }
+        events.filter { it.venue.id == venueId }
 }

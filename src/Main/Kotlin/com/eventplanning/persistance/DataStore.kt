@@ -3,10 +3,10 @@ package com.eventplanning.persistance
 import com.eventplanning.domain.*
 import java.sql.Connection
 import java.sql.DriverManager
-import java. sql.SQLException
-import java.time. LocalDateTime
+import java.sql.SQLException
+import java.time.LocalDateTime
 import java.time.Duration
-import java.time. format.DateTimeFormatter
+import java.time.format.DateTimeFormatter
 
 /**
  * SQLite implementation of the Repository interface.
@@ -88,7 +88,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         try {
             Class.forName("org.sqlite.JDBC")
             connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
-            connection?.createStatement()?. execute("PRAGMA foreign_keys = ON;")
+            connection?.createStatement()?.execute("PRAGMA foreign_keys = ON;")
             println("Database connected successfully: $dbPath")
         } catch (e: Exception) {
             System.err.println("Error connecting to database: ${e.message}")
@@ -99,9 +99,9 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
     override fun initializeStorage() {
         val conn = connection ?: throw IllegalStateException("Database not connected")
         try {
-            conn. createStatement().use { stmt ->
-                stmt. executeUpdate(SqlQueries.CREATE_VENUES)
-                stmt. executeUpdate(SqlQueries.CREATE_PARTICIPANTS)
+            conn.createStatement().use { stmt ->
+                stmt.executeUpdate(SqlQueries.CREATE_VENUES)
+                stmt.executeUpdate(SqlQueries.CREATE_PARTICIPANTS)
                 stmt.executeUpdate(SqlQueries.CREATE_EVENTS)
                 stmt.executeUpdate(SqlQueries.CREATE_REGISTRATIONS)
             }
@@ -117,18 +117,18 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
     override fun saveVenue(venue: Venue): Boolean {
         val conn = connection ?: return false
         return try {
-            conn. prepareStatement(SqlQueries.INSERT_VENUE).use { stmt ->
-                stmt. setString(1, venue.id)
-                stmt.setString(2, venue. name)
+            conn.prepareStatement(SqlQueries.INSERT_VENUE).use { stmt ->
+                stmt.setString(1, venue.id)
+                stmt.setString(2, venue.name)
                 stmt.setInt(3, venue.capacity)
                 stmt.setString(4, venue.location)
                 stmt.setString(5, venue.address)
-                stmt. setString(6, venue.facilities.joinToString(","))
-                stmt. executeUpdate()
+                stmt.setString(6, venue.facilities.joinToString(","))
+                stmt.executeUpdate()
                 true
             }
         } catch (e: SQLException) {
-            System.err. println("Error saving venue: ${e.message}")
+            System.err.println("Error saving venue: ${e.message}")
             false
         }
     }
@@ -138,7 +138,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         return try {
             conn.prepareStatement(SqlQueries.DELETE_VENUE).use { stmt ->
                 stmt.setString(1, id)
-                stmt. executeUpdate() > 0
+                stmt.executeUpdate() > 0
             }
         } catch (e: SQLException) {
             System.err.println("Error deleting venue: ${e.message}")
@@ -151,7 +151,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         val venues = mutableListOf<Venue>()
         try {
             conn.createStatement().use { stmt ->
-                val rs = stmt.executeQuery(SqlQueries. SELECT_VENUES)
+                val rs = stmt.executeQuery(SqlQueries.SELECT_VENUES)
                 while (rs.next()) {
                     venues.add(
                         Venue(
@@ -169,7 +169,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                 }
             }
         } catch (e: SQLException) {
-            System. err.println("Error loading venues: ${e.message}")
+            System.err.println("Error loading venues: ${e.message}")
         }
         return venues
     }
@@ -181,15 +181,15 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         return try {
             conn.prepareStatement(SqlQueries.INSERT_PARTICIPANT).use { stmt ->
                 stmt.setString(1, participant.id)
-                stmt. setString(2, participant.name)
-                stmt.setString(3, participant. email)
+                stmt.setString(2, participant.name)
+                stmt.setString(3, participant.email)
                 stmt.setString(4, participant.phone)
                 stmt.setString(5, participant.organization)
                 stmt.executeUpdate()
                 true
             }
         } catch (e: SQLException) {
-            System. err.println("Error saving participant: ${e.message}")
+            System.err.println("Error saving participant: ${e.message}")
             false
         }
     }
@@ -197,7 +197,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
     override fun deleteParticipant(id: String): Boolean {
         val conn = connection ?: return false
         return try {
-            conn.prepareStatement(SqlQueries. DELETE_PARTICIPANT). use { stmt ->
+            conn.prepareStatement(SqlQueries.DELETE_PARTICIPANT).use { stmt ->
                 stmt.setString(1, id)
                 stmt.executeUpdate() > 0
             }
@@ -211,7 +211,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         val conn = connection ?: return emptyList()
         val participants = mutableListOf<Participant>()
         try {
-            conn.createStatement(). use { stmt ->
+            conn.createStatement().use { stmt ->
                 val rs = stmt.executeQuery(SqlQueries.SELECT_PARTICIPANTS)
                 while (rs.next()) {
                     participants.add(
@@ -219,8 +219,8 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                             id = rs.getString("id"),
                             name = rs.getString("name"),
                             email = rs.getString("email"),
-                            phone = rs. getString("phone") ?: "",
-                            organization = rs. getString("organization") ?: ""
+                            phone = rs.getString("phone") ?: "",
+                            organization = rs.getString("organization") ?: ""
                         )
                     )
                 }
@@ -235,7 +235,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
 
     override fun saveEvent(event: Event): Boolean {
         val conn = connection ?: return false
-        val originalAutoCommit = conn. autoCommit
+        val originalAutoCommit = conn.autoCommit
 
         return try {
             conn.autoCommit = false
@@ -244,17 +244,17 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
             conn.prepareStatement(SqlQueries.INSERT_EVENT).use { stmt ->
                 stmt.setString(1, event.id)
                 stmt.setString(2, event.title)
-                stmt.setString(3, event.dateTime. format(dateTimeFormatter))
-                stmt. setString(4, event.venue.id)
-                stmt. setString(5, event.description)
-                stmt.setLong(6, event.duration. toMinutes())
+                stmt.setString(3, event.dateTime.format(dateTimeFormatter))
+                stmt.setString(4, event.venue.id)
+                stmt.setString(5, event.description)
+                stmt.setLong(6, event.duration.toMinutes())
                 stmt.setInt(7, event.maxParticipants)
                 stmt.executeUpdate()
             }
 
             // Clear existing registrations
             conn.prepareStatement(SqlQueries.DELETE_REGISTRATIONS).use { stmt ->
-                stmt. setString(1, event.id)
+                stmt.setString(1, event.id)
                 stmt.executeUpdate()
             }
 
@@ -262,9 +262,9 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
             conn.prepareStatement(SqlQueries.INSERT_REGISTRATION).use { stmt ->
                 for (participant in event.getRegisteredParticipants()) {
                     stmt.setString(1, event.id)
-                    stmt.setString(2, participant. id)
+                    stmt.setString(2, participant.id)
                     stmt.setString(3, LocalDateTime.now().format(dateTimeFormatter))
-                    stmt. executeUpdate()
+                    stmt.executeUpdate()
                 }
             }
 
@@ -272,7 +272,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
             true
         } catch (e: SQLException) {
             try {
-                conn. rollback()
+                conn.rollback()
             } catch (rollbackEx: SQLException) {
                 System.err.println("Rollback failed: ${rollbackEx.message}")
             }
@@ -286,12 +286,12 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
     override fun deleteEvent(id: String): Boolean {
         val conn = connection ?: return false
         return try {
-            conn.prepareStatement(SqlQueries. DELETE_EVENT).use { stmt ->
+            conn.prepareStatement(SqlQueries.DELETE_EVENT).use { stmt ->
                 stmt.setString(1, id)
-                stmt. executeUpdate() > 0
+                stmt.executeUpdate() > 0
             }
         } catch (e: SQLException) {
-            System. err.println("Error deleting event: ${e.message}")
+            System.err.println("Error deleting event: ${e.message}")
             false
         }
     }
@@ -306,9 +306,9 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         // Pre-load all registrations into memory for efficiency
         val registrationMap = HashMap<String, MutableList<String>>()
         try {
-            conn. createStatement().use { stmt ->
+            conn.createStatement().use { stmt ->
                 val rs = stmt.executeQuery(SqlQueries.SELECT_ALL_REGISTRATIONS)
-                while (rs. next()) {
+                while (rs.next()) {
                     val eventId = rs.getString("event_id")
                     val participantId = rs.getString("participant_id")
                     registrationMap.computeIfAbsent(eventId) { mutableListOf() }.add(participantId)
@@ -322,44 +322,44 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         try {
             conn.createStatement().use { stmt ->
                 val rs = stmt.executeQuery(SqlQueries.SELECT_EVENTS)
-                while (rs. next()) {
+                while (rs.next()) {
                     val eventId = rs.getString("id")
-                    val venueId = rs. getString("venue_id")
+                    val venueId = rs.getString("venue_id")
                     val venue = venueLookup(venueId)
 
                     if (venue != null) {
                         val event = Event(
                             id = eventId,
                             title = rs.getString("title"),
-                            dateTime = LocalDateTime.parse(rs. getString("dateTime"), dateTimeFormatter),
+                            dateTime = LocalDateTime.parse(rs.getString("dateTime"), dateTimeFormatter),
                             venue = venue,
                             description = rs.getString("description") ?: "",
-                            duration = Duration. ofMinutes(rs.getLong("duration_minutes")),
+                            duration = Duration.ofMinutes(rs.getLong("duration_minutes")),
                             maxParticipants = rs.getInt("max_participants")
                         )
 
                         // Attach participants from pre-loaded map
                         registrationMap[eventId]?.forEach { participantId ->
-                            participantLookup(participantId)?. let { participant ->
+                            participantLookup(participantId)?.let { participant ->
                                 event.registerParticipant(participant)
                             }
                         }
 
-                        events. add(event)
+                        events.add(event)
                     } else {
                         System.err.println("Warning: Event '$eventId' references missing venue '$venueId'")
                     }
                 }
             }
         } catch (e: SQLException) {
-            System.err.println("Error loading events: ${e. message}")
+            System.err.println("Error loading events: ${e.message}")
         }
         return events
     }
 
     override fun disconnect() {
         try {
-            connection?. close()
+            connection?.close()
             println("Database disconnected.")
         } catch (e: SQLException) {
             System.err.println("Error disconnecting: ${e.message}")

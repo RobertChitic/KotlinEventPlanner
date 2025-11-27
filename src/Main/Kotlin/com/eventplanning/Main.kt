@@ -10,7 +10,7 @@ import com.formdev.flatlaf.FlatLightLaf
 fun main() {
     // Initialize Look and Feel
     try {
-        FlatLightLaf. setup()
+        FlatLightLaf.setup()
         UIManager.put("Button.arc", 12)
         UIManager.put("Component.arc", 12)
         UIManager.put("ProgressBar.arc", 12)
@@ -22,7 +22,7 @@ fun main() {
     // Initialize database
     val repository = DataStore()
     repository.connect()
-    repository. initializeStorage()
+    repository.initializeStorage()
 
     // Initialize event manager
     val eventManager = EventManager(repository)
@@ -40,9 +40,9 @@ fun main() {
     }
 
     // Graceful shutdown
-    Runtime.getRuntime(). addShutdownHook(Thread {
+    Runtime.getRuntime().addShutdownHook(Thread {
         println("Shutting down...")
-        eventManager. saveAllData()
-        repository. disconnect()
+        eventManager.saveAllData()
+        repository.disconnect()
     })
 }

@@ -1,8 +1,8 @@
 package com.eventplanning.persistance
 
 import com.eventplanning.domain.Event
-import com.eventplanning.domain. Participant
-import com.eventplanning.domain. Venue
+import com.eventplanning.domain.Participant
+import com.eventplanning.domain.Venue
 
 /**
  * Repository interface defining all persistence operations.

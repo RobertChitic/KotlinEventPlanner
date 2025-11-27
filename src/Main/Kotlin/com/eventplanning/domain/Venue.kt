@@ -1,4 +1,4 @@
-package com. eventplanning.domain
+package com.eventplanning.domain
 
 /**
  * Represents a venue where events can be held.

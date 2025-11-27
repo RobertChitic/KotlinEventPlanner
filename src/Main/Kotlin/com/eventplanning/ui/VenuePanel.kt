@@ -38,7 +38,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
         setupTable()
         setupButtons()
 
-        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT). apply {
+        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT).apply {
             leftComponent = createTablePanel()
             rightComponent = createFormPanel()
             dividerLocation = 550
@@ -52,11 +52,11 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     }
 
     private fun setupTable() {
-        venueTable. apply {
-            setSelectionMode(ListSelectionModel. SINGLE_SELECTION)
+        venueTable.apply {
+            setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
             rowHeight = 28
             showHorizontalLines = true
-            gridColor = Color. LIGHT_GRAY
+            gridColor = Color.LIGHT_GRAY
             fillsViewportHeight = true
         }
     }
@@ -78,10 +78,10 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     private fun createTablePanel(): JPanel {
         return JPanel(BorderLayout()).apply {
             border = BorderFactory.createTitledBorder("Venue List")
-            add(JScrollPane(venueTable), BorderLayout. CENTER)
+            add(JScrollPane(venueTable), BorderLayout.CENTER)
 
             val buttonPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-            buttonPanel. add(deleteButton)
+            buttonPanel.add(deleteButton)
             add(buttonPanel, BorderLayout.SOUTH)
         }
     }
@@ -98,14 +98,14 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
         var gridY = 0
 
-        fun addRow(label: String, component: JComponent, tooltip: String?  = null) {
+        fun addRow(label: String, component: JComponent, tooltip: String? = null) {
             gbc.gridx = 0
             gbc.gridy = gridY
-            gbc.weightx = 0. 0
+            gbc.weightx = 0.0
             panel.add(JLabel(label), gbc)
 
             gbc.gridx = 1
-            gbc.weightx = 1. 0
+            gbc.weightx = 1.0
             component.toolTipText = tooltip
             panel.add(component, gbc)
             gridY++
@@ -119,8 +119,8 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
         // Spacer
         gbc.gridy = gridY
-        gbc.weighty = 1. 0
-        panel. add(JPanel(), gbc)
+        gbc.weighty = 1.0
+        panel.add(JPanel(), gbc)
 
         // Buttons
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
@@ -144,14 +144,14 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
     private fun addVenue() {
         val name = nameField.text.trim()
-        val capacityStr = capacityField. text.trim()
+        val capacityStr = capacityField.text.trim()
         val location = locationField.text.trim()
         val address = addressField.text.trim()
         val facilitiesStr = facilitiesField.text.trim()
 
         // Validation
-        if (name.isBlank() || capacityStr. isBlank() || location.isBlank() || address.isBlank()) {
-            JOptionPane. showMessageDialog(
+        if (name.isBlank() || capacityStr.isBlank() || location.isBlank() || address.isBlank()) {
+            JOptionPane.showMessageDialog(
                 this,
                 "Please fill in all required fields (marked with *).",
                 "Validation Error",
@@ -162,7 +162,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
         val capacity = capacityStr.toIntOrNull()
         if (capacity == null || capacity <= 0) {
-            JOptionPane. showMessageDialog(
+            JOptionPane.showMessageDialog(
                 this,
                 "Capacity must be a positive number.",
                 "Validation Error",
@@ -171,15 +171,15 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
             return
         }
 
-        val facilities = if (facilitiesStr. isBlank()) {
+        val facilities = if (facilitiesStr.isBlank()) {
             emptyList()
         } else {
-            facilitiesStr.split(","). map { it.trim() }. filter { it.isNotBlank() }
+            facilitiesStr.split(",").map { it.trim() }.filter { it.isNotBlank() }
         }
 
         try {
             val venue = Venue(
-                id = UUID. randomUUID(). toString(),
+                id = UUID.randomUUID().toString(),
                 name = name,
                 capacity = capacity,
                 location = location,
@@ -200,12 +200,12 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
                             clearFields()
                             JOptionPane.showMessageDialog(
                                 this@VenuePanel,
-                                "Venue '${venue.name}' added successfully! ",
+                                "Venue '${venue.name}' added successfully!",
                                 "Success",
-                                JOptionPane. INFORMATION_MESSAGE
+                                JOptionPane.INFORMATION_MESSAGE
                             )
                         } else {
-                            JOptionPane. showMessageDialog(
+                            JOptionPane.showMessageDialog(
                                 this@VenuePanel,
                                 "Failed to add venue.  It may already exist.",
                                 "Error",
@@ -224,7 +224,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
             }
             worker.execute()
         } catch (e: IllegalArgumentException) {
-            JOptionPane. showMessageDialog(
+            JOptionPane.showMessageDialog(
                 this,
                 "Validation Error: ${e.message}",
                 "Error",
@@ -234,7 +234,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     }
 
     private fun deleteSelectedVenue() {
-        val selectedRow = venueTable. selectedRow
+        val selectedRow = venueTable.selectedRow
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(
                 this,
@@ -245,9 +245,9 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
             return
         }
 
-        val venue = displayedVenues. getOrNull(selectedRow) ?: return
+        val venue = displayedVenues.getOrNull(selectedRow) ?: return
 
-        val confirm = JOptionPane. showConfirmDialog(
+        val confirm = JOptionPane.showConfirmDialog(
             this,
             "Are you sure you want to delete '${venue.name}'?\n\nThis action cannot be undone.",
             "Confirm Delete",
@@ -255,14 +255,14 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
             JOptionPane.WARNING_MESSAGE
         )
 
-        if (confirm == JOptionPane. YES_OPTION) {
+        if (confirm == JOptionPane.YES_OPTION) {
             deleteButton.isEnabled = false
 
             val worker = object : SwingWorker<Boolean, Void>() {
                 override fun doInBackground(): Boolean = eventManager.deleteVenue(venue)
 
                 override fun done() {
-                    deleteButton. isEnabled = true
+                    deleteButton.isEnabled = true
                     try {
                         if (get()) {
                             refreshVenueTable()
@@ -283,7 +283,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
                     } catch (e: Exception) {
                         JOptionPane.showMessageDialog(
                             this@VenuePanel,
-                            "Error: ${e. message}",
+                            "Error: ${e.message}",
                             "Error",
                             JOptionPane.ERROR_MESSAGE
                         )
@@ -303,7 +303,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
                 venue.capacity,
                 venue.location,
                 venue.address,
-                venue. getFacilitiesDisplay()
+                venue.getFacilitiesDisplay()
             ))
         }
     }
@@ -311,7 +311,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     private fun clearFields() {
         nameField.text = ""
         capacityField.text = ""
-        locationField. text = ""
+        locationField.text = ""
         addressField.text = ""
         facilitiesField.text = ""
         nameField.requestFocus()

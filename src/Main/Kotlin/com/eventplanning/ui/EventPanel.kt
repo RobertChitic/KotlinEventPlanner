@@ -8,7 +8,7 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.event.PopupMenuEvent
-import javax. swing.event.PopupMenuListener
+import javax.swing.event.PopupMenuListener
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableRowSorter
@@ -17,7 +17,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util. Date
+import java.util.Date
 import java.util.UUID
 
 /**
@@ -56,7 +56,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         layout = BorderLayout()
         setupComponents()
 
-        val splitPane = JSplitPane(JSplitPane. HORIZONTAL_SPLIT).apply {
+        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT).apply {
             leftComponent = createTablePanel()
             rightComponent = createFormPanel()
             dividerLocation = 600
@@ -73,16 +73,16 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
     private fun setupComponents() {
         eventTable.apply {
             rowSorter = tableSorter
-            setSelectionMode(ListSelectionModel. SINGLE_SELECTION)
+            setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
             rowHeight = 30
             showHorizontalLines = true
             gridColor = Color.LIGHT_GRAY
             fillsViewportHeight = true
-            columnModel. getColumn(4).cellRenderer = CapacityCellRenderer()
+            columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
         }
 
-        searchField.putClientProperty("JTextField. placeholderText", "Filter events...")
-        venueInfoLabel.foreground = Color. GRAY
+        searchField.putClientProperty("JTextField.placeholderText", "Filter events...")
+        venueInfoLabel.foreground = Color.GRAY
 
         deleteButton.apply {
             foreground = Color.WHITE
@@ -91,7 +91,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         }
 
         createButton.apply {
-            foreground = Color. WHITE
+            foreground = Color.WHITE
             background = Color(40, 167, 69)
             isOpaque = true
         }
@@ -116,11 +116,11 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
      * Custom cell renderer that displays capacity as a colored progress bar.
      */
     private class CapacityCellRenderer : DefaultTableCellRenderer() {
-        private val progressBar = JProgressBar(0, 100). apply {
+        private val progressBar = JProgressBar(0, 100).apply {
             isStringPainted = true
             border = BorderFactory.createCompoundBorder(
                 BorderFactory.createEmptyBorder(3, 3, 3, 3),
-                BorderFactory. createLineBorder(Color. LIGHT_GRAY)
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY)
             )
             isOpaque = true
         }
@@ -133,21 +133,21 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
             row: Int,
             column: Int
         ): Component {
-            progressBar.background = if (isSelected) table?. selectionBackground else Color.WHITE
+            progressBar.background = if (isSelected) table?.selectionBackground else Color.WHITE
 
             val strValue = value as? String ?: "0/0"
             try {
                 val parts = strValue.split("/")
                 if (parts.size == 2) {
-                    val current = parts[0]. toInt()
+                    val current = parts[0].toInt()
                     val max = parts[1].toInt()
 
                     progressBar.maximum = max
                     progressBar.value = current
-                    progressBar. string = "$current / $max"
+                    progressBar.string = "$current / $max"
 
-                    val percent = if (max > 0) (current. toDouble() / max * 100).toInt() else 0
-                    progressBar. foreground = when {
+                    val percent = if (max > 0) (current.toDouble() / max * 100).toInt() else 0
+                    progressBar.foreground = when {
                         percent >= 100 -> Color(220, 53, 69)  // Red - Full
                         percent >= 75 -> Color(255, 193, 7)   // Yellow - Almost full
                         else -> Color(40, 167, 69)            // Green - Available
@@ -161,11 +161,11 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
     }
 
     private fun createTablePanel(): JPanel {
-        return JPanel(BorderLayout()). apply {
+        return JPanel(BorderLayout()).apply {
             border = BorderFactory.createTitledBorder("Event Schedule")
 
             val topPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-            topPanel. add(JLabel("Filter:"))
+            topPanel.add(JLabel("Filter:"))
             topPanel.add(searchField)
             add(topPanel, BorderLayout.NORTH)
 
@@ -183,7 +183,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
         val gbc = GridBagConstraints().apply {
             insets = Insets(5, 5, 5, 5)
-            anchor = GridBagConstraints. WEST
+            anchor = GridBagConstraints.WEST
             fill = GridBagConstraints.HORIZONTAL
         }
 
@@ -197,7 +197,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
             panel.add(JLabel(label), gbc)
 
             gbc.gridx = 1
-            gbc.weightx = 1. 0
+            gbc.weightx = 1.0
             panel.add(component, gbc)
             gridY++
         }
@@ -206,7 +206,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         addRow("Start Time:*", startDateSpinner)
 
         // Duration panel
-        val durationPanel = JPanel(FlowLayout(FlowLayout. LEFT, 0, 0)). apply {
+        val durationPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
             add(hoursSpinner)
             add(JLabel(" hours "))
             add(minutesSpinner)
@@ -218,7 +218,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
         // Venue info label
         gbc.gridx = 1
-        gbc. gridy = gridY
+        gbc.gridy = gridY
         panel.add(venueInfoLabel, gbc)
         gridY++
 
@@ -226,17 +226,17 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
         // Description area
         gbc.gridx = 0
-        gbc. gridy = gridY
+        gbc.gridy = gridY
         gbc.gridwidth = 2
         gbc.weighty = 1.0
-        gbc.fill = GridBagConstraints. BOTH
-        panel.add(JScrollPane(descriptionArea). apply {
+        gbc.fill = GridBagConstraints.BOTH
+        panel.add(JScrollPane(descriptionArea).apply {
             border = BorderFactory.createTitledBorder("Description")
         }, gbc)
 
         // Button panel
         gridY++
-        val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT)). apply {
+        val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
             add(clearButton)
             add(findVenueBtn)
             add(createButton)
@@ -252,16 +252,16 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun setupListeners() {
         createButton.addActionListener { createEvent() }
-        findVenueBtn. addActionListener { findAvailableVenue() }
+        findVenueBtn.addActionListener { findAvailableVenue() }
         clearButton.addActionListener { clearFields() }
-        deleteButton. addActionListener { deleteSelectedEvent() }
+        deleteButton.addActionListener { deleteSelectedEvent() }
 
         // Update venue info when selection changes
         venueCombo.addActionListener {
-            val venue = (venueCombo. selectedItem as? VenueItem)?. venue
+            val venue = (venueCombo.selectedItem as? VenueItem)?.venue
             if (venue != null) {
                 venueInfoLabel.text = "Capacity: ${venue.capacity}"
-                venueInfoLabel. foreground = Color(40, 167, 69)
+                venueInfoLabel.foreground = Color(40, 167, 69)
             } else {
                 venueInfoLabel.text = "Select a venue..."
                 venueInfoLabel.foreground = Color.GRAY
@@ -276,7 +276,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         })
 
         // Search filter
-        searchField. document.addDocumentListener(object : DocumentListener {
+        searchField.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) = applyFilter()
             override fun removeUpdate(e: DocumentEvent?) = applyFilter()
             override fun changedUpdate(e: DocumentEvent?) = applyFilter()
@@ -286,7 +286,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                 if (text.trim().isEmpty()) {
                     tableSorter.rowFilter = null
                 } else {
-                    tableSorter. rowFilter = RowFilter.regexFilter("(? i)$text")
+                    tableSorter.rowFilter = RowFilter.regexFilter("(?i)$text")
                 }
             }
         })
@@ -294,17 +294,17 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun refreshEventTable() {
         tableModel.rowCount = 0
-        val dateFormatter = DateTimeFormatter. ofPattern("yyyy-MM-dd")
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-        displayedEvents = eventManager.getAllEvents().sortedBy { it. dateTime }
+        displayedEvents = eventManager.getAllEvents().sortedBy { it.dateTime }
         displayedEvents.forEach { event ->
             val endTime = event.getEndTime()
             tableModel.addRow(arrayOf(
                 event.title,
-                event.dateTime. format(dateFormatter),
+                event.dateTime.format(dateFormatter),
                 "${event.dateTime.format(timeFormatter)} - ${endTime.format(timeFormatter)}",
-                event.venue. name,
+                event.venue.name,
                 "${event.getCurrentCapacity()}/${event.maxParticipants}"
             ))
         }
@@ -319,8 +319,8 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun createEvent() {
         val title = titleField.text.trim()
-        val venueItem = venueCombo.selectedItem as?  VenueItem
-        val description = descriptionArea. text. trim()
+        val venueItem = venueCombo.selectedItem as? VenueItem
+        val description = descriptionArea.text.trim()
         val capacity = maxParticipantsField.text.toIntOrNull()
 
         // Validation
@@ -340,21 +340,21 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         }
 
         if (capacity > venueItem.venue.capacity) {
-            showError("Capacity cannot exceed venue capacity (${venueItem. venue.capacity}).")
+            showError("Capacity cannot exceed venue capacity (${venueItem.venue.capacity}).")
             return
         }
 
         val hours = (hoursSpinner.value as Number).toLong()
         val minutes = (minutesSpinner.value as Number).toLong()
-        val duration = Duration. ofHours(hours). plusMinutes(minutes)
+        val duration = Duration.ofHours(hours).plusMinutes(minutes)
 
         if (duration.isZero || duration.isNegative) {
             showError("Please enter a valid duration.")
             return
         }
 
-        val dateTime = LocalDateTime. ofInstant(
-            (startDateSpinner. value as Date).toInstant(),
+        val dateTime = LocalDateTime.ofInstant(
+            (startDateSpinner.value as Date).toInstant(),
             ZoneId.systemDefault()
         )
 
@@ -381,7 +381,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                 override fun doInBackground(): Boolean = eventManager.addEvent(event)
 
                 override fun done() {
-                    createButton. isEnabled = true
+                    createButton.isEnabled = true
                     try {
                         if (get()) {
                             refreshEventTable()
@@ -416,15 +416,15 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         val modelRow = eventTable.convertRowIndexToModel(viewRow)
         val eventToDelete = displayedEvents.getOrNull(modelRow) ?: return
 
-        val confirm = JOptionPane. showConfirmDialog(
+        val confirm = JOptionPane.showConfirmDialog(
             this,
-            "Are you sure you want to delete '${eventToDelete. title}'?",
+            "Are you sure you want to delete '${eventToDelete.title}'?",
             "Confirm Delete",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
         )
 
-        if (confirm == JOptionPane. YES_OPTION) {
+        if (confirm == JOptionPane.YES_OPTION) {
             deleteButton.isEnabled = false
 
             val worker = object : SwingWorker<Boolean, Void>() {
@@ -445,7 +445,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                     }
                 }
             }
-            worker. execute()
+            worker.execute()
         }
     }
 
@@ -457,17 +457,71 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         }
 
         val hours = (hoursSpinner.value as Number).toLong()
-        val minutes = (minutesSpinner. value as Number).toLong()
-        val duration = Duration.ofHours(hours). plusMinutes(minutes)
+        val minutes = (minutesSpinner.value as Number).toLong()
+        val duration = Duration.ofHours(hours).plusMinutes(minutes)
 
-        val dateTime = LocalDateTime. ofInstant(
+        val dateTime = LocalDateTime.ofInstant(
             (startDateSpinner.value as Date).toInstant(),
             ZoneId.systemDefault()
         )
 
-        findVenueBtn. isEnabled = false
+        findVenueBtn.isEnabled = false
 
-        val worker = object : SwingWorker<ScalaBridge. SlotFinderResult, Void>() {
+        val worker = object : SwingWorker<ScalaBridge.SlotFinderResult, Void>() {
             override fun doInBackground(): ScalaBridge.SlotFinderResult {
                 return ScalaBridge.findAvailableVenues(
-                    eventManager.
+                    eventManager.getAllVenues(),
+                    eventManager.getAllEvents(),
+                    capacity,
+                    dateTime,
+                    duration
+                )
+            }
+
+            override fun done() {
+                findVenueBtn.isEnabled = true
+                try {
+                    when (val result = get()) {
+                        is ScalaBridge.SlotFinderResult.Success -> {
+                            if (result.venues.isEmpty()) {
+                                showError("No venues available for the selected time and capacity.")
+                            } else {
+                                val venueNames = result.venues.joinToString("\n") { "• ${it.name} (Cap: ${it.capacity})" }
+                                JOptionPane.showMessageDialog(
+                                    this@EventPanel,
+                                    "Available Venues:\n\n$venueNames",
+                                    "Venues Found",
+                                    JOptionPane.INFORMATION_MESSAGE
+                                )
+                            }
+                        }
+                        is ScalaBridge.SlotFinderResult.Error -> {
+                            showError(result.message)
+                        }
+                    }
+                } catch (e: Exception) {
+                    showError("Error searching for venues: ${e.message}")
+                }
+            }
+        }
+        worker.execute()
+    }
+
+    private fun clearFields() {
+        titleField.text = ""
+        descriptionArea.text = ""
+        maxParticipantsField.text = ""
+        startDateSpinner.value = Date()
+        hoursSpinner.value = 2
+        minutesSpinner.value = 0
+        venueCombo.selectedIndex = -1
+    }
+
+    private fun showError(message: String) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE)
+    }
+
+    private data class VenueItem(val venue: Venue) {
+        override fun toString(): String = venue.name
+    }
+}

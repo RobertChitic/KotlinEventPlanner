@@ -29,7 +29,7 @@ class ParticipantPanel(
 
     private val addButton = JButton("Add Participant")
     private val clearButton = JButton("Clear")
-    private val deleteButton = JButton("❌ Delete Participant")
+    private val deleteButton = JButton("Delete Participant")
 
     init {
         layout = BorderLayout()
@@ -40,11 +40,21 @@ class ParticipantPanel(
         participantTable.gridColor = Color.LIGHT_GRAY
         participantTable.fillsViewportHeight = true
 
-        searchField.putClientProperty("JTextField.placeholderText", "🔍 Filter...")
-        deleteButton.foreground = Color.BLACK
-        deleteButton.background = Color(220, 53, 69)
-        deleteButton.isContentAreaFilled = false
-        deleteButton.isOpaque = true
+        searchField.putClientProperty("JTextField.placeholderText", "Filter...")
+
+        // Red Box Delete Button
+        deleteButton.apply {
+            foreground = Color.WHITE
+            background = Color(220, 53, 69)
+            isOpaque = true
+        }
+
+        // Green Add Button
+        addButton.apply {
+            foreground = Color.WHITE
+            background = Color(40, 167, 69) // Green
+            isOpaque = true
+        }
 
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
         splitPane.leftComponent = createTablePanel()
@@ -106,7 +116,15 @@ class ParticipantPanel(
         val p = Participant(UUID.randomUUID().toString(), name, email, phoneField.text.trim(), organizationField.text.trim())
         val worker = object : SwingWorker<Boolean, Void>() {
             override fun doInBackground() = eventManager.addParticipant(p)
-            override fun done() { if(get()) { refreshParticipantTable(); clearFields(); JOptionPane.showMessageDialog(this@ParticipantPanel, "Added!", "Success", JOptionPane.INFORMATION_MESSAGE) } else JOptionPane.showMessageDialog(this@ParticipantPanel, "Failed (Duplicate?)", "Error", JOptionPane.ERROR_MESSAGE) }
+            override fun done() {
+                if (get()) {
+                    refreshParticipantTable()
+                    clearFields()
+                    JOptionPane.showMessageDialog(this@ParticipantPanel, "Added!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                } else {
+                    JOptionPane.showMessageDialog(this@ParticipantPanel, "Failed to add participant (ID/Email may exist).", "Error", JOptionPane.ERROR_MESSAGE)
+                }
+            }
         }
         worker.execute()
     }

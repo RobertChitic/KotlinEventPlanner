@@ -1,4 +1,4 @@
-package com.eventplanning. domain
+package com.eventplanning.domain
 
 /**
  * Represents a participant who can register for events.

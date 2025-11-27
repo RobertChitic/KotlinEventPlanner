@@ -137,7 +137,28 @@ class RegistrationPanel(
 
     private fun unregisterParticipant() {
         // (Similar logic for unregistering, calling eventManager.updateEvent(event) in background)
-        // For brevity, assume similar structure to registerParticipant above
+        val participantItem = participantCombo.selectedItem as? ParticipantItem
+        val eventItem = eventCombo.selectedItem as? EventItem
+
+        if (participantItem == null || eventItem == null) return
+
+        val participant = participantItem.participant
+        val event = eventItem.event
+
+        val worker = object : SwingWorker<Boolean, Void>() {
+            override fun doInBackground(): Boolean {
+                event.unregisterParticipant(participant)
+                return eventManager.updateEvent(event)
+            }
+            override fun done() {
+                if(get()) {
+                    updateRegisteredList(event)
+                    updateEventDetails(event)
+                    JOptionPane.showMessageDialog(this@RegistrationPanel, "Unregistered Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                }
+            }
+        }
+        worker.execute()
     }
 
     // ... Keep helper methods (updateRegisteredList, updateEventDetails, refreshCombos) ...

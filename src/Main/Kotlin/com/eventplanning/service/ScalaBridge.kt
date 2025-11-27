@@ -1,7 +1,7 @@
-package com.eventplanning. service
+package com.eventplanning.service
 
-import com. eventplanning.domain.Event
-import com.eventplanning. domain.Venue
+import com.eventplanning.domain.Event
+import com.eventplanning.domain.Venue
 import java.time.LocalDateTime
 import java.time.Duration
 
@@ -12,7 +12,7 @@ import java.time.Duration
 object ScalaBridge {
 
     private const val SLOT_FINDER_CLASS = "com.eventplanning.scheduling.SlotFinder"
-    private const val EVENT_SCHEDULER_CLASS = "com.eventplanning. scheduling.EventScheduler"
+    private const val EVENT_SCHEDULER_CLASS = "com.eventplanning.scheduling.EventScheduler"
 
     /**
      * Result class for slot finding operations.
@@ -49,11 +49,11 @@ object ScalaBridge {
         duration: Duration
     ): SlotFinderResult {
         return try {
-            val clazz = Class. forName(SLOT_FINDER_CLASS)
-            val method = clazz. getMethod(
+            val clazz = Class.forName(SLOT_FINDER_CLASS)
+            val method = clazz.getMethod(
                 "findAllAvailableSlots",
                 java.util.List::class.java,
-                java.util. List::class.java,
+                java.util.List::class.java,
                 Int::class.javaPrimitiveType,
                 LocalDateTime::class.java,
                 Duration::class.java
@@ -61,11 +61,11 @@ object ScalaBridge {
 
             @Suppress("UNCHECKED_CAST")
             val result = method.invoke(null, venues, events, requiredCapacity, dateTime, duration) as List<Venue>
-            SlotFinderResult. Success(result)
+            SlotFinderResult.Success(result)
         } catch (e: ClassNotFoundException) {
             SlotFinderResult.Error("Scala SlotFinder not found.  Ensure Scala components are compiled.")
         } catch (e: Exception) {
-            val cause = e.cause?. message ?: e.message ?: "Unknown error"
+            val cause = e.cause?.message ?: e.message ?: "Unknown error"
             SlotFinderResult.Error("SlotFinder error: $cause")
         }
     }
@@ -76,46 +76,46 @@ object ScalaBridge {
      */
     fun generateSchedule(events: List<Event>, venues: List<Venue>): SchedulerResult {
         return try {
-            val schedulerClass = Class. forName(EVENT_SCHEDULER_CLASS)
+            val schedulerClass = Class.forName(EVENT_SCHEDULER_CLASS)
             val resultClass = Class.forName("$EVENT_SCHEDULER_CLASS\$ScheduleResult")
 
             // Invoke scheduleEvents method
             val scheduleMethod = schedulerClass.getMethod(
                 "scheduleEvents",
                 java.util.List::class.java,
-                java.util. List::class.java
+                java.util.List::class.java
             )
-            val result = scheduleMethod. invoke(null, events, venues)
+            val result = scheduleMethod.invoke(null, events, venues)
 
             // Convert result to a map for easier processing
             val mapMethod = schedulerClass.getMethod("scheduleToMap", resultClass)
 
             @Suppress("UNCHECKED_CAST")
-            val resultMap = mapMethod. invoke(null, result) as Map<String, Any>
+            val resultMap = mapMethod.invoke(null, result) as Map<String, Any>
 
             parseSchedulerResult(resultMap)
         } catch (e: ClassNotFoundException) {
             SchedulerResult.Error("Scala EventScheduler not found. Ensure Scala components are compiled.", 0)
         } catch (e: Exception) {
             val cause = e.cause?.message ?: e.message ?: "Unknown error"
-            SchedulerResult. Error("Scheduler error: $cause", 0)
+            SchedulerResult.Error("Scheduler error: $cause", 0)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun parseSchedulerResult(resultMap: Map<String, Any>): SchedulerResult {
-        val success = resultMap["success"] as?  Boolean ?: false
+        val success = resultMap["success"] as? Boolean ?: false
 
         return if (success) {
             val scheduleList = resultMap["schedule"] as? java.util.ArrayList<java.util.Map<String, Any>>
-                ?: return SchedulerResult. Error("Invalid schedule format", 0)
+                ?: return SchedulerResult.Error("Invalid schedule format", 0)
 
-            val entries = scheduleList. map { entry ->
+            val entries = scheduleList.map { entry ->
                 ScheduleEntry(
                     eventId = entry["eventId"]?.toString() ?: "",
                     eventTitle = entry["eventTitle"]?.toString() ?: "",
                     venue = entry["venue"]?.toString() ?: "",
-                    dateTime = entry["dateTime"]?. toString() ?: ""
+                    dateTime = entry["dateTime"]?.toString() ?: ""
                 )
             }
             SchedulerResult.Success(entries)
