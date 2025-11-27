@@ -5,15 +5,27 @@ import _root_.com.eventplanning.domain.Venue
 import java.time.LocalDateTime
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
-
+// Import explicitly for converting Java Collections (List) to Scala Collections (Seq/List)
 object EventScheduler {
 
+  /**
+   * Data carrier for a confirmed booking.
+   *
+   * event: Represents original event request.
+   * assignedVenue: Represents venue matched to the event.
+   * assignedDateTime: Represents the confirmed time slot.
+   */
   case class ScheduledEvent(
                              event: Event,
                              assignedVenue: Venue,
                              assignedDateTime: LocalDateTime
                            )
 
+  /**
+   * Represents the outcome of a scheduling attempt.
+   * This is a Sealed Trait (Algebraic Data Type), meaning the result
+   * can ONLY be Success or Failure.
+   */
   sealed trait ScheduleResult
   case class Success(schedule: List[ScheduledEvent]) extends ScheduleResult
   case class Failure(message: String, problematicEvents: List[Event]) extends ScheduleResult
@@ -27,10 +39,17 @@ object EventScheduler {
     val eventList = events.asScala.toList
     val venueList = venues.asScala.toList
 
+    /**
+     * Returned when all events are successfully assigned.
+     */
     if (eventList.isEmpty) {
       return Success(List.empty)
     }
-
+    /**
+     * Returned if even a single event cannot be scheduled.
+     * message Human-readable error.
+     * problematicEvents The events remaining in the queue when failure occurred.
+     */
     if (venueList.isEmpty) {
       return Failure("No venues available", eventList)
     }

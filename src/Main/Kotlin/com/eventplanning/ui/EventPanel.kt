@@ -3,6 +3,7 @@ package com.eventplanning.ui
 import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
+import com.eventplanning.service.ScalaBridge // NEW IMPORT
 import javax.swing.*
 import java.awt.*
 import java.time.LocalDateTime
@@ -15,7 +16,6 @@ class EventPanel(
     private val eventManager: EventManager
 ) : JPanel() {
 
-    // ... UI Components (keep existing definitions) ...
     private val eventListModel = DefaultListModel<String>()
     private val eventList = JList(eventListModel)
     private val titleField = JTextField(25)
@@ -23,7 +23,7 @@ class EventPanel(
     private val venueCombo = JComboBox<VenueItem>()
     private val descriptionArea = JTextArea(3, 25)
     private val maxParticipantsField = JTextField(10)
-    private val createButton = JButton("Create Event") // Promoted to class level for enabling/disabling
+    private val createButton = JButton("Create Event")
 
     init {
         layout = BorderLayout(10, 10)
@@ -35,20 +35,17 @@ class EventPanel(
     }
 
     private fun createFormPanel(): JPanel {
-        // ... (Layout code remains identical to your original) ...
         val panel = JPanel(GridBagLayout())
         panel.border = BorderFactory.createTitledBorder("Create New Event")
         val gbc = GridBagConstraints()
         gbc.insets = Insets(5, 5, 5, 5)
         gbc.anchor = GridBagConstraints.WEST
 
-        // Title
         gbc.gridx = 0; gbc.gridy = 0
         panel.add(JLabel("Event Title:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(titleField, gbc)
 
-        // Date/Time
         gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Date/Time:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
@@ -57,19 +54,16 @@ class EventPanel(
         dateSpinner.value = Date()
         panel.add(dateSpinner, gbc)
 
-        // Venue
         gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Venue:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(venueCombo, gbc)
 
-        // Max Participants
         gbc.gridx = 0; gbc.gridy = 3; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Max Participants:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(maxParticipantsField, gbc)
 
-        // Description
         gbc.gridx = 0; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Description:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.BOTH
@@ -77,7 +71,6 @@ class EventPanel(
         descriptionArea.wrapStyleWord = true
         panel.add(JScrollPane(descriptionArea), gbc)
 
-        // Buttons
         gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
 
@@ -96,7 +89,6 @@ class EventPanel(
         return panel
     }
 
-    // ... createListPanel remains same ...
     private fun createListPanel(): JPanel {
         val panel = JPanel(BorderLayout())
         panel.border = BorderFactory.createTitledBorder("Scheduled Events")
@@ -106,7 +98,6 @@ class EventPanel(
         return panel
     }
 
-    // === REFACTORED: Uses SwingWorker for Responsiveness ===
     private fun createEvent() {
         val title = titleField.text.trim()
         val venueItem = venueCombo.selectedItem as? VenueItem
@@ -135,29 +126,24 @@ class EventPanel(
                 maxParticipants = maxParticipants ?: venueItem.venue.capacity
             )
 
-            // Disable button to prevent double-clicks
             createButton.isEnabled = false
             createButton.text = "Saving..."
 
-            // Background Worker
             val worker = object : SwingWorker<Boolean, Void>() {
                 override fun doInBackground(): Boolean {
-                    // This runs in background thread.
-                    // EventManager now handles the DB save internally.
                     return eventManager.addEvent(event)
                 }
 
                 override fun done() {
-                    // This runs on UI thread when finished
                     createButton.isEnabled = true
                     createButton.text = "Create Event"
                     try {
-                        if (get()) { // get() returns result of doInBackground
+                        if (get()) {
                             JOptionPane.showMessageDialog(this@EventPanel, "Event Created & Saved!", "Success", JOptionPane.INFORMATION_MESSAGE)
                             clearFields()
                             refreshEventList()
                         } else {
-                            JOptionPane.showMessageDialog(this@EventPanel, "Failed to save event (DB Error or Duplicate)", "Error", JOptionPane.ERROR_MESSAGE)
+                            JOptionPane.showMessageDialog(this@EventPanel, "Failed to save event", "Error", JOptionPane.ERROR_MESSAGE)
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -171,7 +157,6 @@ class EventPanel(
         }
     }
 
-    // ... Helper methods (refreshEventList, refreshVenueCombo, clearFields) remain same ...
     private fun refreshEventList() {
         eventListModel.clear()
         eventManager.getAllEvents().forEach { event ->
@@ -196,11 +181,8 @@ class EventPanel(
         override fun toString(): String = "${venue.name} (Capacity: ${venue.capacity})"
     }
 
-    // ... Keep your existing Scala Reflection code exactly as is ...
+    // === UPDATED: Using ScalaBridge ===
     private fun findAvailableVenue() {
-        // (Copy your previous findAvailableVenue implementation here)
-        // It is perfectly fine to keep the reflection here as requested.
-        // Just ensure you get 'venues' and 'events' from eventManager.getAll...()
         try {
             val requiredCapacity = maxParticipantsField.text.toIntOrNull() ?: run {
                 JOptionPane.showMessageDialog(this, "Enter required capacity first", "Info", JOptionPane.INFORMATION_MESSAGE)
@@ -208,37 +190,41 @@ class EventPanel(
             }
             val selectedDate = dateSpinner.value as Date
             val proposedDateTime = LocalDateTime.ofInstant(selectedDate.toInstant(), ZoneId.systemDefault())
+
+            // Use local variables for thread safety inside SwingWorker (though not strictly required for read)
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
 
-            val slotFinderClass = Class.forName("com.eventplanning.scheduling.SlotFinder")
-            val method = slotFinderClass.getMethod(
-                "findAllAvailableSlots",
-                java.util.List::class.java,
-                java.util.List::class.java,
-                Int::class.javaPrimitiveType,
-                java.time.LocalDateTime::class.java
+            // Note: You could wrap this in a SwingWorker too if it's slow,
+            // but here we are just bridging the call.
+
+            val availableVenues = ScalaBridge.findAvailableVenues(
+                venues,
+                events,
+                requiredCapacity,
+                proposedDateTime
             )
 
-            @Suppress("UNCHECKED_CAST")
-            val availableVenues = method.invoke(null, venues, events, requiredCapacity, proposedDateTime) as java.util.List<Venue>
-
-            // ... rest of your existing display logic ...
             if (availableVenues.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No venues found", "Info", JOptionPane.INFORMATION_MESSAGE)
+                JOptionPane.showMessageDialog(this, "No venues found for this date/capacity.", "Info", JOptionPane.INFORMATION_MESSAGE)
             } else {
-                JOptionPane.showMessageDialog(this, "Found ${availableVenues.size} venues", "Info", JOptionPane.INFORMATION_MESSAGE)
+                val message = buildString {
+                    appendLine("Found ${availableVenues.size} available venue(s):")
+                    availableVenues.forEach { appendLine("- ${it.name} (Cap: ${it.capacity})") }
+                }
+                JOptionPane.showMessageDialog(this, message, "Results", JOptionPane.INFORMATION_MESSAGE)
+
                 // Auto-select first match
                 val first = availableVenues[0]
-                for(i in 0 until venueCombo.itemCount) {
-                    if(venueCombo.getItemAt(i).venue.id == first.id) {
+                for (i in 0 until venueCombo.itemCount) {
+                    if (venueCombo.getItemAt(i).venue.id == first.id) {
                         venueCombo.selectedIndex = i
                         break
                     }
                 }
             }
         } catch (e: Exception) {
-            JOptionPane.showMessageDialog(this, "Reflection Error: ${e.message}", "Error", JOptionPane.ERROR_MESSAGE)
+            JOptionPane.showMessageDialog(this, "Bridge Error: ${e.message}", "Error", JOptionPane.ERROR_MESSAGE)
         }
     }
 }
