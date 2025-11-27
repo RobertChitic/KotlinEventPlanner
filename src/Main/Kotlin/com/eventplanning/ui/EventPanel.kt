@@ -24,9 +24,9 @@ class EventPanel(
     // Start Time
     private val startDateSpinner = JSpinner(SpinnerDateModel())
 
-    // CHANGED: Duration Spinners instead of End Date
-    private val hoursSpinner = JSpinner(SpinnerNumberModel(2, 0, 24, 1)) // Default 2 hours
-    private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15)) // Steps of 15 mins
+    // Duration Spinners
+    private val hoursSpinner = JSpinner(SpinnerNumberModel(2, 0, 24, 1))
+    private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15))
 
     private val venueCombo = JComboBox<VenueItem>()
     private val descriptionArea = JTextArea(3, 25)
@@ -64,7 +64,7 @@ class EventPanel(
         startDateSpinner.value = Date()
         panel.add(startDateSpinner, gbc)
 
-        // 3. Duration (New UI)
+        // 3. Duration
         gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Duration:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
@@ -140,6 +140,19 @@ class EventPanel(
             return
         }
 
+        // === CHANGED: Strict Validation for Max Participants ===
+        if (maxParticipants == null || maxParticipants <= 0) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for Max Participants.", "Error", JOptionPane.ERROR_MESSAGE)
+            return
+        }
+
+        // Check logical constraint immediately (User experience)
+        if (maxParticipants > venueItem.venue.capacity) {
+            JOptionPane.showMessageDialog(this, "Max Participants cannot exceed venue capacity (${venueItem.venue.capacity}).", "Error", JOptionPane.ERROR_MESSAGE)
+            return
+        }
+        // =======================================================
+
         // === CALCULATE DURATION ===
         val hours = hoursSpinner.value as Int
         val minutes = minutesSpinner.value as Int
@@ -154,20 +167,41 @@ class EventPanel(
         val startObj = startDateSpinner.value as Date
         val startDateTime = LocalDateTime.ofInstant(startObj.toInstant(), ZoneId.systemDefault())
 
-        // Logic check: Inform user if event goes overnight (just a polite notice)
+        // Calculate End Time for display
         val endDateTime = startDateTime.plus(duration)
-        if (endDateTime.toLocalDate().isAfter(startDateTime.toLocalDate())) {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            val confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Note: This duration will make the event end on the next day:\n" +
-                        "Ends at: ${endDateTime.format(formatter)}\n\nContinue?",
-                "Overnight Event",
-                JOptionPane.YES_NO_OPTION
-            )
-            if (confirm != JOptionPane.YES_OPTION) return
+
+        // === CONFIRMATION DIALOG ===
+        val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val timeOnlyFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+        val endsNextDay = endDateTime.toLocalDate().isAfter(startDateTime.toLocalDate())
+        val endDateString = if(endsNextDay) " (Next Day!)" else ""
+
+        val message = """
+            Please confirm your Event details:
+            
+            Title:       $title
+            Venue:       ${venueItem.venue.name}
+            Start:       ${startDateTime.format(dateTimeFormatter)}
+            Duration:    $hours hrs $minutes mins
+            Ends at:     ${endDateTime.format(timeOnlyFormatter)}$endDateString
+            Capacity:    $maxParticipants people
+            
+            Is this correct?
+        """.trimIndent()
+
+        val choice = JOptionPane.showConfirmDialog(
+            this,
+            message,
+            "Confirm Event Creation",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        )
+
+        if (choice != JOptionPane.YES_OPTION) {
+            return // User cancelled
         }
-        // ==========================
+        // =================================
 
         try {
             val event = Event(
@@ -177,7 +211,7 @@ class EventPanel(
                 venue = venueItem.venue,
                 description = description,
                 duration = duration,
-                maxParticipants = maxParticipants ?: venueItem.venue.capacity
+                maxParticipants = maxParticipants // Now guaranteed to be non-null
             )
 
             // Conflict Check

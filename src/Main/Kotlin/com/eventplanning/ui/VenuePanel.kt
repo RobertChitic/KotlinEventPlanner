@@ -7,7 +7,7 @@ import java.awt.*
 import java.util.UUID
 
 class VenuePanel(
-    private val eventManager: EventManager // Changed: Removed DataStore
+    private val eventManager: EventManager
 ) : JPanel() {
     private val venueListModel = DefaultListModel<String>()
     private val venueList = JList(venueListModel)
@@ -16,7 +16,7 @@ class VenuePanel(
     private val capacityField = JTextField(10)
     private val locationField = JTextField(20)
     private val addressField = JTextField(30)
-    private val addButton = JButton("Add Venue") // Promoted to class level
+    private val addButton = JButton("Add Venue")
 
     init {
         layout = BorderLayout(10, 10)
@@ -33,7 +33,6 @@ class VenuePanel(
         gbc.insets = Insets(5, 5, 5, 5)
         gbc.anchor = GridBagConstraints.WEST
 
-        // ... (Layout code same as original) ...
         gbc.gridx = 0; gbc.gridy = 0; panel.add(JLabel("Venue Name:"), gbc)
         gbc.gridx = 1; panel.add(nameField, gbc)
         gbc.gridx = 0; gbc.gridy = 1; panel.add(JLabel("Capacity:"), gbc)
@@ -57,13 +56,45 @@ class VenuePanel(
         return panel
     }
 
-    // CHANGED: SwingWorker for responsiveness
     private fun addVenue() {
         try {
             val name = nameField.text.trim()
-            val capacity = capacityField.text.toInt()
+            val capacityStr = capacityField.text.trim()
             val location = locationField.text.trim()
             val address = addressField.text.trim()
+
+            // Basic validation before creating object
+            if (name.isBlank() || capacityStr.isBlank() || location.isBlank() || address.isBlank()) {
+                JOptionPane.showMessageDialog(this, "All fields are required.", "Validation Error", JOptionPane.WARNING_MESSAGE)
+                return
+            }
+
+            val capacity = capacityStr.toInt()
+
+            // === CONFIRMATION DIALOG ===
+            val message = """
+                Please confirm the details for the new Venue:
+                
+                Name:      $name
+                Capacity:  $capacity
+                Location:  $location
+                Address:   $address
+                
+                Is this correct?
+            """.trimIndent()
+
+            val choice = JOptionPane.showConfirmDialog(
+                this,
+                message,
+                "Confirm New Venue",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            )
+
+            if (choice != JOptionPane.YES_OPTION) {
+                return // User cancelled
+            }
+            // ===========================
 
             val venue = Venue(
                 id = UUID.randomUUID().toString(),
@@ -78,7 +109,7 @@ class VenuePanel(
 
             val worker = object : SwingWorker<Boolean, Void>() {
                 override fun doInBackground(): Boolean {
-                    return eventManager.addVenue(venue) // DB save happens here now
+                    return eventManager.addVenue(venue)
                 }
 
                 override fun done() {
@@ -86,11 +117,11 @@ class VenuePanel(
                     addButton.text = "Add Venue"
                     try {
                         if (get()) {
-                            JOptionPane.showMessageDialog(this@VenuePanel, "Venue Added!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                            JOptionPane.showMessageDialog(this@VenuePanel, "Venue Added Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE)
                             clearFields()
                             refreshVenueList()
                         } else {
-                            JOptionPane.showMessageDialog(this@VenuePanel, "Failed to save venue", "Error", JOptionPane.ERROR_MESSAGE)
+                            JOptionPane.showMessageDialog(this@VenuePanel, "Failed to save venue (ID collision?)", "Error", JOptionPane.ERROR_MESSAGE)
                         }
                     } catch (e: Exception) { e.printStackTrace() }
                 }
@@ -98,7 +129,7 @@ class VenuePanel(
             worker.execute()
 
         } catch (e: NumberFormatException) {
-            JOptionPane.showMessageDialog(this, "Invalid Capacity", "Error", JOptionPane.ERROR_MESSAGE)
+            JOptionPane.showMessageDialog(this, "Capacity must be a valid number.", "Input Error", JOptionPane.ERROR_MESSAGE)
         } catch (e: Exception) {
             JOptionPane.showMessageDialog(this, e.message, "Error", JOptionPane.ERROR_MESSAGE)
         }
