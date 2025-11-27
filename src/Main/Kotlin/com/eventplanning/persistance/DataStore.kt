@@ -204,16 +204,33 @@ class DataStore : Repository {
     ): List<Event> {
         val conn = connection ?: return emptyList()
         val events = mutableListOf<Event>()
+
+        // 1. Load all Registrations into a Map in Memory first
+        // Map<EventID, List<ParticipantID>>
+        val registrationMap = HashMap<String, MutableList<String>>()
+        try {
+            conn.createStatement().use { stmt ->
+                val rs = stmt.executeQuery("SELECT event_id, participant_id FROM Event_Registrations")
+                while(rs.next()) {
+                    val eId = rs.getString("event_id")
+                    val pId = rs.getString("participant_id")
+                    registrationMap.computeIfAbsent(eId) { mutableListOf() }.add(pId)
+                }
+            }
+        } catch (e: SQLException) { println("Error pre-loading regs: ${e.message}") }
+
+        // 2. Load Events and attach participants from map (No extra DB queries inside loop!)
         try {
             conn.createStatement().use { stmt ->
                 val rs = stmt.executeQuery(SqlQueries.SELECT_EVENTS)
                 while (rs.next()) {
+                    val eventId = rs.getString("id")
                     val venueId = rs.getString("venue_id")
                     val venue = venueLookup(venueId)
 
                     if (venue != null) {
                         val event = Event(
-                            id = rs.getString("id"),
+                            id = eventId,
                             title = rs.getString("title"),
                             dateTime = LocalDateTime.parse(rs.getString("dateTime"), dateTimeFormatter),
                             venue = venue,
@@ -221,15 +238,20 @@ class DataStore : Repository {
                             duration = Duration.ofMinutes(rs.getLong("duration_minutes")),
                             maxParticipants = rs.getInt("max_participants")
                         )
-                        loadEventRegistrations(event, participantLookup)
+
+                        // Attach participants from our pre-loaded map
+                        registrationMap[eventId]?.forEach { pId ->
+                            participantLookup(pId)?.let { event.registerParticipant(it) }
+                        }
+
                         events.add(event)
                     }
                 }
             }
         } catch (e: SQLException) { println("Error loading events: ${e.message}") }
         return events
-    }
 
+    }
     private fun loadEventRegistrations(event: Event, participantLookup: (String) -> Participant?) {
         val conn = connection ?: return
         try {
