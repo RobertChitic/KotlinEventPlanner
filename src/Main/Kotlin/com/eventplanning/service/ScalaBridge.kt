@@ -30,7 +30,8 @@ object ScalaBridge {
             )
 
             @Suppress("UNCHECKED_CAST")
-            return method.invoke(null, venues, events, requiredCapacity, dateTime) as List<Venue>
+            // FIX: Added 'duration' to the arguments list below
+            return method.invoke(null, venues, events, requiredCapacity, dateTime, duration) as List<Venue>
         } catch (e: Exception) {
             throw RuntimeException("Failed to connect to Scala SlotFinder: ${e.message}", e)
         }

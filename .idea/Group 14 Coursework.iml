@@ -13,5 +13,6 @@
     <orderEntry type="library" name="scala-sdk-2.13.17" level="project" />
     <orderEntry type="library" name="sqlite-jdbc-3.51.0.0" level="project" />
     <orderEntry type="library" name="sqlite-jdbc-3.51.0.1" level="project" />
+    <orderEntry type="library" name="flatlaf-3.2.5" level="project" />
   </component>
 </module>
