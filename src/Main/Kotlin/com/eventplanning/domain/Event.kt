@@ -9,7 +9,7 @@ data class Event(
     val dateTime: LocalDateTime,
     val venue: Venue,
     val description: String = "",
-    val duration: Duration = Duration.ofHours(2),
+    val duration: Duration,
     val maxParticipants: Int = venue.capacity,
     private val registeredParticipants: MutableList<Participant> = mutableListOf()
 )

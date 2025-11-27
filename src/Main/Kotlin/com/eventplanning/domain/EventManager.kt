@@ -17,7 +17,6 @@ class EventManager(private val repository: Repository) {
             participants.addAll(repository.loadAllParticipants())
 
             events.clear()
-            // We pass functions to look up venues/participants to keep DataStore decoupled from Manager
             events.addAll(repository.loadAllEvents(
                 venueLookup = { id -> getVenueById(id) },
                 participantLookup = { id -> getParticipantById(id) }
@@ -29,7 +28,6 @@ class EventManager(private val repository: Repository) {
     }
 
     fun saveAllData(): Boolean {
-        // In a real app, we'd save incrementally, but for this assignment:
         var success = true
         venues.forEach { if (!repository.saveVenue(it)) success = false }
         participants.forEach { if (!repository.saveParticipant(it)) success = false }
@@ -41,38 +39,45 @@ class EventManager(private val repository: Repository) {
 
     fun addVenue(venue: Venue): Boolean {
         if (venues.any { it.id == venue.id }) return false
-
-        // 1. Try to save to DB
         if (!repository.saveVenue(venue)) return false
-
-        // 2. If successful, add to memory
         venues.add(venue)
         return true
     }
 
     fun addParticipant(participant: Participant): Boolean {
         if (participants.any { it.id == participant.id }) return false
-
         if (!repository.saveParticipant(participant)) return false
-
         participants.add(participant)
         return true
     }
 
+    // === UPDATED METHOD WITH CONFLICT CHECK ===
     fun addEvent(event: Event): Boolean {
+        // 1. Check if ID exists
         if (events.any { it.id == event.id }) return false
 
+        // 2. CRITICAL FIX: Check for conflicts with existing events
+        // If ANY existing event conflicts with the new one, reject it.
+        val hasConflict = events.any { existingEvent ->
+            event.conflictsWith(existingEvent)
+        }
+
+        if (hasConflict) {
+            // Ideally, you would throw an exception here to tell the UI *why* it failed,
+            // but returning false is the minimum requirement.
+            return false
+        }
+
+        // 3. Try to save to DB
         if (!repository.saveEvent(event)) return false
 
+        // 4. If successful, add to memory
         events.add(event)
         return true
     }
 
     fun updateEvent(event: Event): Boolean {
-        // Used for registrations/modifications
         if (!repository.saveEvent(event)) return false
-        // Memory reference is likely already updated if object was modified directly,
-        // but this ensures DB is in sync
         return true
     }
 

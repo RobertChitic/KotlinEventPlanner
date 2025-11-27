@@ -3,9 +3,10 @@ package com.eventplanning.ui
 import com.eventplanning.domain.Event
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
-import com.eventplanning.service.ScalaBridge // NEW IMPORT
+import com.eventplanning.service.ScalaBridge
 import javax.swing.*
 import java.awt.*
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -19,7 +20,14 @@ class EventPanel(
     private val eventListModel = DefaultListModel<String>()
     private val eventList = JList(eventListModel)
     private val titleField = JTextField(25)
-    private val dateSpinner = JSpinner(SpinnerDateModel())
+
+    // Start Time
+    private val startDateSpinner = JSpinner(SpinnerDateModel())
+
+    // CHANGED: Duration Spinners instead of End Date
+    private val hoursSpinner = JSpinner(SpinnerNumberModel(2, 0, 24, 1)) // Default 2 hours
+    private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15)) // Steps of 15 mins
+
     private val venueCombo = JComboBox<VenueItem>()
     private val descriptionArea = JTextArea(3, 25)
     private val maxParticipantsField = JTextField(10)
@@ -41,37 +49,56 @@ class EventPanel(
         gbc.insets = Insets(5, 5, 5, 5)
         gbc.anchor = GridBagConstraints.WEST
 
+        // 1. Title
         gbc.gridx = 0; gbc.gridy = 0
         panel.add(JLabel("Event Title:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(titleField, gbc)
 
+        // 2. Start Time
         gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE
-        panel.add(JLabel("Date/Time:"), gbc)
+        panel.add(JLabel("Start Time:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
-        val spinnerEditor = JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd HH:mm")
-        dateSpinner.editor = spinnerEditor
-        dateSpinner.value = Date()
-        panel.add(dateSpinner, gbc)
+        val startEditor = JSpinner.DateEditor(startDateSpinner, "yyyy-MM-dd HH:mm")
+        startDateSpinner.editor = startEditor
+        startDateSpinner.value = Date()
+        panel.add(startDateSpinner, gbc)
 
+        // 3. Duration (New UI)
         gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE
+        panel.add(JLabel("Duration:"), gbc)
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
+
+        val durationPanel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
+        durationPanel.add(hoursSpinner)
+        durationPanel.add(JLabel("hrs"))
+        durationPanel.add(minutesSpinner)
+        durationPanel.add(JLabel("mins"))
+
+        panel.add(durationPanel, gbc)
+
+        // 4. Venue
+        gbc.gridx = 0; gbc.gridy = 3; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Venue:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(venueCombo, gbc)
 
-        gbc.gridx = 0; gbc.gridy = 3; gbc.fill = GridBagConstraints.NONE
+        // 5. Max Participants
+        gbc.gridx = 0; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Max Participants:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL
         panel.add(maxParticipantsField, gbc)
 
-        gbc.gridx = 0; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE
+        // 6. Description
+        gbc.gridx = 0; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE
         panel.add(JLabel("Description:"), gbc)
         gbc.gridx = 1; gbc.fill = GridBagConstraints.BOTH
         descriptionArea.lineWrap = true
         descriptionArea.wrapStyleWord = true
         panel.add(JScrollPane(descriptionArea), gbc)
 
-        gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE
+        // 7. Buttons
+        gbc.gridx = 1; gbc.gridy = 6; gbc.fill = GridBagConstraints.NONE
         val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
 
         val findVenueBtn = JButton("🔍 Find Available Venue")
@@ -113,18 +140,59 @@ class EventPanel(
             return
         }
 
-        val selectedDate = dateSpinner.value as Date
-        val dateTime = LocalDateTime.ofInstant(selectedDate.toInstant(), ZoneId.systemDefault())
+        // === CALCULATE DURATION ===
+        val hours = hoursSpinner.value as Int
+        val minutes = minutesSpinner.value as Int
+
+        if (hours == 0 && minutes == 0) {
+            JOptionPane.showMessageDialog(this, "Duration must be at least 1 minute.", "Error", JOptionPane.ERROR_MESSAGE)
+            return
+        }
+
+        val duration = Duration.ofHours(hours.toLong()).plusMinutes(minutes.toLong())
+
+        val startObj = startDateSpinner.value as Date
+        val startDateTime = LocalDateTime.ofInstant(startObj.toInstant(), ZoneId.systemDefault())
+
+        // Logic check: Inform user if event goes overnight (just a polite notice)
+        val endDateTime = startDateTime.plus(duration)
+        if (endDateTime.toLocalDate().isAfter(startDateTime.toLocalDate())) {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            val confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Note: This duration will make the event end on the next day:\n" +
+                        "Ends at: ${endDateTime.format(formatter)}\n\nContinue?",
+                "Overnight Event",
+                JOptionPane.YES_NO_OPTION
+            )
+            if (confirm != JOptionPane.YES_OPTION) return
+        }
+        // ==========================
 
         try {
             val event = Event(
                 id = UUID.randomUUID().toString(),
                 title = title,
-                dateTime = dateTime,
+                dateTime = startDateTime,
                 venue = venueItem.venue,
                 description = description,
+                duration = duration,
                 maxParticipants = maxParticipants ?: venueItem.venue.capacity
             )
+
+            // Conflict Check
+            val conflict = eventManager.getAllEvents().find { it.conflictsWith(event) }
+            if (conflict != null) {
+                val formatter = DateTimeFormatter.ofPattern("HH:mm")
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Venue '${event.venue.name}' is already booked at this time by event:\n" +
+                            "'${conflict.title}' (${conflict.dateTime.format(formatter)} - ${conflict.getEndTime().format(formatter)})",
+                    "Scheduling Conflict",
+                    JOptionPane.WARNING_MESSAGE
+                )
+                return
+            }
 
             createButton.isEnabled = false
             createButton.text = "Saving..."
@@ -143,7 +211,7 @@ class EventPanel(
                             clearFields()
                             refreshEventList()
                         } else {
-                            JOptionPane.showMessageDialog(this@EventPanel, "Failed to save event", "Error", JOptionPane.ERROR_MESSAGE)
+                            JOptionPane.showMessageDialog(this@EventPanel, "Failed to save event.", "Error", JOptionPane.ERROR_MESSAGE)
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -159,9 +227,12 @@ class EventPanel(
 
     private fun refreshEventList() {
         eventListModel.clear()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         eventManager.getAllEvents().forEach { event ->
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            eventListModel.addElement("${event.title} - ${event.dateTime.format(formatter)} @ ${event.venue.name}")
+            val endFormatted = event.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+            eventListModel.addElement(
+                "${event.title} | ${event.dateTime.format(formatter)} - $endFormatted | @ ${event.venue.name}"
+            )
         }
     }
 
@@ -172,7 +243,9 @@ class EventPanel(
 
     private fun clearFields() {
         titleField.text = ""
-        dateSpinner.value = Date()
+        startDateSpinner.value = Date()
+        hoursSpinner.value = 2 // Reset to default
+        minutesSpinner.value = 0
         descriptionArea.text = ""
         maxParticipantsField.text = ""
     }
@@ -181,22 +254,17 @@ class EventPanel(
         override fun toString(): String = "${venue.name} (Capacity: ${venue.capacity})"
     }
 
-    // === UPDATED: Using ScalaBridge ===
     private fun findAvailableVenue() {
         try {
             val requiredCapacity = maxParticipantsField.text.toIntOrNull() ?: run {
                 JOptionPane.showMessageDialog(this, "Enter required capacity first", "Info", JOptionPane.INFORMATION_MESSAGE)
                 return
             }
-            val selectedDate = dateSpinner.value as Date
+            val selectedDate = startDateSpinner.value as Date
             val proposedDateTime = LocalDateTime.ofInstant(selectedDate.toInstant(), ZoneId.systemDefault())
 
-            // Use local variables for thread safety inside SwingWorker (though not strictly required for read)
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
-
-            // Note: You could wrap this in a SwingWorker too if it's slow,
-            // but here we are just bridging the call.
 
             val availableVenues = ScalaBridge.findAvailableVenues(
                 venues,
@@ -214,7 +282,6 @@ class EventPanel(
                 }
                 JOptionPane.showMessageDialog(this, message, "Results", JOptionPane.INFORMATION_MESSAGE)
 
-                // Auto-select first match
                 val first = availableVenues[0]
                 for (i in 0 until venueCombo.itemCount) {
                     if (venueCombo.getItemAt(i).venue.id == first.id) {
