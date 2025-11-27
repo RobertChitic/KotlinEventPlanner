@@ -15,7 +15,8 @@ object ScalaBridge {
         venues: List<Venue>,
         events: List<Event>,
         requiredCapacity: Int,
-        dateTime: LocalDateTime
+        dateTime: LocalDateTime,
+        duration: java.time.Duration
     ): List<Venue> {
         try {
             val clazz = Class.forName("com.eventplanning.scheduling.SlotFinder")
@@ -24,7 +25,8 @@ object ScalaBridge {
                 java.util.List::class.java,
                 java.util.List::class.java,
                 Int::class.javaPrimitiveType,
-                java.time.LocalDateTime::class.java
+                java.time.LocalDateTime::class.java,
+                java.time.Duration::class.java
             )
 
             @Suppress("UNCHECKED_CAST")

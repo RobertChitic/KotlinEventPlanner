@@ -290,25 +290,43 @@ class EventPanel(
 
     private fun findAvailableVenue() {
         try {
+            // 1. Get Capacity
             val requiredCapacity = maxParticipantsField.text.toIntOrNull() ?: run {
                 JOptionPane.showMessageDialog(this, "Enter required capacity first", "Info", JOptionPane.INFORMATION_MESSAGE)
                 return
             }
+
+            // 2. Get Duration (NEW)
+            val hours = hoursSpinner.value as Int
+            val minutes = minutesSpinner.value as Int
+
+            if (hours == 0 && minutes == 0) {
+                JOptionPane.showMessageDialog(this, "Please set a duration (at least 1 min) to check availability.", "Info", JOptionPane.INFORMATION_MESSAGE)
+                return
+            }
+
+            val duration = Duration.ofHours(hours.toLong()).plusMinutes(minutes.toLong())
+
+            // 3. Get Date
             val selectedDate = startDateSpinner.value as Date
             val proposedDateTime = LocalDateTime.ofInstant(selectedDate.toInstant(), ZoneId.systemDefault())
 
+            // 4. Get Data
             val venues = eventManager.getAllVenues()
             val events = eventManager.getAllEvents()
 
+            // 5. Call Bridge with Duration (UPDATED)
             val availableVenues = ScalaBridge.findAvailableVenues(
                 venues,
                 events,
                 requiredCapacity,
-                proposedDateTime
+                proposedDateTime,
+                duration
             )
 
+            // 6. Handle Results
             if (availableVenues.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No venues found for this date/capacity.", "Info", JOptionPane.INFORMATION_MESSAGE)
+                JOptionPane.showMessageDialog(this, "No venues found for this date, time, and duration.", "Info", JOptionPane.INFORMATION_MESSAGE)
             } else {
                 val message = buildString {
                     appendLine("Found ${availableVenues.size} available venue(s):")
@@ -316,6 +334,7 @@ class EventPanel(
                 }
                 JOptionPane.showMessageDialog(this, message, "Results", JOptionPane.INFORMATION_MESSAGE)
 
+                // Auto-select the first one found
                 val first = availableVenues[0]
                 for (i in 0 until venueCombo.itemCount) {
                     if (venueCombo.getItemAt(i).venue.id == first.id) {
