@@ -49,6 +49,7 @@ private object SqlQueries {
     const val INSERT_REGISTRATION = "INSERT INTO Event_Registrations (event_id, participant_id, registration_date) VALUES (?, ?, ?)"
     const val SELECT_EVENTS = "SELECT * FROM Events"
     const val SELECT_REGISTRATIONS = "SELECT participant_id FROM Event_Registrations WHERE event_id = ?"
+    const val SELECT_ALL_REGISTRATIONS = "SELECT event_id, participant_id FROM Event_Registrations"
 }
 
 class DataStore : Repository {
@@ -210,7 +211,7 @@ class DataStore : Repository {
         val registrationMap = HashMap<String, MutableList<String>>()
         try {
             conn.createStatement().use { stmt ->
-                val rs = stmt.executeQuery("SELECT event_id, participant_id FROM Event_Registrations")
+                val rs = stmt.executeQuery(SqlQueries.SELECT_ALL_REGISTRATIONS)
                 while(rs.next()) {
                     val eId = rs.getString("event_id")
                     val pId = rs.getString("participant_id")
