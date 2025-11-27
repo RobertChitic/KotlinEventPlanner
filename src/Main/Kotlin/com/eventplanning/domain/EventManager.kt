@@ -51,20 +51,16 @@ class EventManager(private val repository: Repository) {
         return true
     }
 
-    // === UPDATED METHOD WITH CONFLICT CHECK ===
     fun addEvent(event: Event): Boolean {
         // 1. Check if ID exists
         if (events.any { it.id == event.id }) return false
 
-        // 2. CRITICAL FIX: Check for conflicts with existing events
-        // If ANY existing event conflicts with the new one, reject it.
+        // 2. Check for conflicts with existing events
         val hasConflict = events.any { existingEvent ->
             event.conflictsWith(existingEvent)
         }
 
         if (hasConflict) {
-            // Ideally, you would throw an exception here to tell the UI *why* it failed,
-            // but returning false is the minimum requirement.
             return false
         }
 
@@ -81,7 +77,40 @@ class EventManager(private val repository: Repository) {
         return true
     }
 
-    // Read-only methods remain the same
+    // --- NEW DELETE METHODS ---
+
+    fun deleteVenue(venue: Venue): Boolean {
+        // Check if used in any event
+        if (events.any { it.venue.id == venue.id }) {
+            return false // Cannot delete venue if events depend on it
+        }
+
+        if (repository.deleteVenue(venue.id)) {
+            venues.removeIf { it.id == venue.id }
+            return true
+        }
+        return false
+    }
+
+    fun deleteParticipant(participant: Participant): Boolean {
+        if (repository.deleteParticipant(participant.id)) {
+            participants.removeIf { it.id == participant.id }
+            // Also remove from any in-memory events to keep state consistent
+            events.forEach { it.unregisterParticipant(participant) }
+            return true
+        }
+        return false
+    }
+
+    fun deleteEvent(event: Event): Boolean {
+        if (repository.deleteEvent(event.id)) {
+            events.removeIf { it.id == event.id }
+            return true
+        }
+        return false
+    }
+
+    // Read-only methods
     fun getAllVenues(): List<Venue> = venues.toList()
     fun getVenueById(id: String): Venue? = venues.find { it.id == id }
     fun getAllEvents(): List<Event> = events.toList()

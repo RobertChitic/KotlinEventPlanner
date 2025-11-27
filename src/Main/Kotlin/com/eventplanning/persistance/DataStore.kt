@@ -8,7 +8,6 @@ import java.time.LocalDateTime
 import java.time.Duration
 import java.time.format.DateTimeFormatter
 
-
 private object SqlQueries {
     // venues table
     const val CREATE_VENUES = """
@@ -38,6 +37,7 @@ private object SqlQueries {
             FOREIGN KEY (participant_id) REFERENCES Participants(id) ON DELETE CASCADE
         )"""
 
+    // INSERT / SELECT
     const val INSERT_VENUE = "INSERT OR REPLACE INTO Venues (id, name, capacity, location, address, facilities) VALUES (?, ?, ?, ?, ?, ?)"
     const val SELECT_VENUES = "SELECT * FROM Venues"
 
@@ -50,6 +50,11 @@ private object SqlQueries {
     const val SELECT_EVENTS = "SELECT * FROM Events"
     const val SELECT_REGISTRATIONS = "SELECT participant_id FROM Event_Registrations WHERE event_id = ?"
     const val SELECT_ALL_REGISTRATIONS = "SELECT event_id, participant_id FROM Event_Registrations"
+
+    // DELETE
+    const val DELETE_VENUE = "DELETE FROM Venues WHERE id = ?"
+    const val DELETE_PARTICIPANT = "DELETE FROM Participants WHERE id = ?"
+    const val DELETE_EVENT = "DELETE FROM Events WHERE id = ?"
 }
 
 class DataStore : Repository {
@@ -61,6 +66,8 @@ class DataStore : Repository {
         try {
             Class.forName("org.sqlite.JDBC")
             connection = DriverManager.getConnection(dbUrl)
+            // Enable Foreign Keys for Cascade Delete support in SQLite
+            connection?.createStatement()?.execute("PRAGMA foreign_keys = ON;")
             println("Connected to the database successfully.")
         } catch (e: Exception) {
             println("Error connecting to database: ${e.message}")
@@ -82,6 +89,8 @@ class DataStore : Repository {
         }
     }
 
+    // --- VENUES ---
+
     override fun saveVenue(venue: Venue): Boolean {
         val conn = connection ?: return false
         return try {
@@ -97,6 +106,18 @@ class DataStore : Repository {
             }
         } catch (e: SQLException) {
             println("Error saving venue: ${e.message}"); false
+        }
+    }
+
+    override fun deleteVenue(id: String): Boolean {
+        val conn = connection ?: return false
+        return try {
+            conn.prepareStatement(SqlQueries.DELETE_VENUE).use { stmt ->
+                stmt.setString(1, id)
+                stmt.executeUpdate() > 0
+            }
+        } catch (e: SQLException) {
+            println("Error deleting venue: ${e.message}"); false
         }
     }
 
@@ -121,6 +142,8 @@ class DataStore : Repository {
         return venues
     }
 
+    // --- PARTICIPANTS ---
+
     override fun saveParticipant(participant: Participant): Boolean {
         val conn = connection ?: return false
         return try {
@@ -134,6 +157,18 @@ class DataStore : Repository {
                 true
             }
         } catch (e: SQLException) { println("Error saving participant: ${e.message}"); false }
+    }
+
+    override fun deleteParticipant(id: String): Boolean {
+        val conn = connection ?: return false
+        return try {
+            conn.prepareStatement(SqlQueries.DELETE_PARTICIPANT).use { stmt ->
+                stmt.setString(1, id)
+                stmt.executeUpdate() > 0
+            }
+        } catch (e: SQLException) {
+            println("Error deleting participant: ${e.message}"); false
+        }
     }
 
     override fun loadAllParticipants(): List<Participant> {
@@ -155,6 +190,8 @@ class DataStore : Repository {
         } catch (e: SQLException) { println("Error loading participants: ${e.message}") }
         return participants
     }
+
+    // --- EVENTS ---
 
     override fun saveEvent(event: Event): Boolean {
         val conn = connection ?: return false
@@ -199,6 +236,18 @@ class DataStore : Repository {
         }
     }
 
+    override fun deleteEvent(id: String): Boolean {
+        val conn = connection ?: return false
+        return try {
+            conn.prepareStatement(SqlQueries.DELETE_EVENT).use { stmt ->
+                stmt.setString(1, id)
+                stmt.executeUpdate() > 0
+            }
+        } catch (e: SQLException) {
+            println("Error deleting event: ${e.message}"); false
+        }
+    }
+
     override fun loadAllEvents(
         venueLookup: (String) -> Venue?,
         participantLookup: (String) -> Participant?
@@ -207,7 +256,6 @@ class DataStore : Repository {
         val events = mutableListOf<Event>()
 
         // 1. Load all Registrations into a Map in Memory first
-        // Map<EventID, List<ParticipantID>>
         val registrationMap = HashMap<String, MutableList<String>>()
         try {
             conn.createStatement().use { stmt ->
@@ -220,7 +268,7 @@ class DataStore : Repository {
             }
         } catch (e: SQLException) { println("Error pre-loading regs: ${e.message}") }
 
-        // 2. Load Events and attach participants from map (No extra DB queries inside loop!)
+        // 2. Load Events and attach participants
         try {
             conn.createStatement().use { stmt ->
                 val rs = stmt.executeQuery(SqlQueries.SELECT_EVENTS)
@@ -251,21 +299,6 @@ class DataStore : Repository {
             }
         } catch (e: SQLException) { println("Error loading events: ${e.message}") }
         return events
-
-    }
-    private fun loadEventRegistrations(event: Event, participantLookup: (String) -> Participant?) {
-        val conn = connection ?: return
-        try {
-            conn.prepareStatement(SqlQueries.SELECT_REGISTRATIONS).use { stmt ->
-                stmt.setString(1, event.id)
-                val rs = stmt.executeQuery()
-                while (rs.next()) {
-                    val pId = rs.getString("participant_id")
-                    val participant = participantLookup(pId)
-                    if (participant != null) event.registerParticipant(participant)
-                }
-            }
-        } catch (e: SQLException) { println("Error loading regs: ${e.message}") }
     }
 
     override fun disconnect() {
