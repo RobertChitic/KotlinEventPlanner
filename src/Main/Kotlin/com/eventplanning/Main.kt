@@ -5,18 +5,12 @@ import com.eventplanning.persistance.DataStore
 import com.eventplanning.ui.MainWindow
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
-import java.awt.Font
 import com.formdev.flatlaf.FlatLightLaf
 
 fun main() {
     try {
+        // Standard Setup - No experimental flags
         FlatLightLaf.setup()
-
-        // --- FIX FOR MISSING TEXT ON MACOS ---
-        // Force a standard font instead of the system font
-        val safeFont = javax.swing.plaf.FontUIResource("SansSerif", Font.PLAIN, 13)
-        UIManager.put("defaultFont", safeFont)
-        // -------------------------------------
 
         UIManager.put("Button.arc", 12)
         UIManager.put("Component.arc", 12)

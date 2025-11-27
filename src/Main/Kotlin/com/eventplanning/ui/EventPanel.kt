@@ -31,7 +31,7 @@ class EventPanel(
     private val eventTable = JTable(tableModel)
     private val tableSorter = TableRowSorter(tableModel)
 
-    // Form Components
+    // Form
     private val searchField = JTextField(15)
     private val titleField = JTextField(20)
     private val startDateSpinner = JSpinner(SpinnerDateModel())
@@ -39,12 +39,12 @@ class EventPanel(
     private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15))
     private val venueCombo = JComboBox<VenueItem>()
     private val venueInfoLabel = JLabel("Select a venue...")
-    private val descriptionArea = JTextArea(4, 20)
+    private val descriptionArea = JTextArea(5, 20)
     private val maxParticipantsField = JTextField(10)
 
     private val createButton = JButton("Create Event")
     private val clearButton = JButton("Clear")
-    private val findVenueBtn = JButton("Find Slot")
+    private val findVenueBtn = JButton("Find Slot (Scala)")
     private val deleteButton = JButton("❌ Delete Event")
 
     init {
@@ -53,24 +53,24 @@ class EventPanel(
         // Table Setup
         eventTable.rowSorter = tableSorter
         eventTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-        eventTable.rowHeight = 28
+        eventTable.rowHeight = 30
         eventTable.showHorizontalLines = true
         eventTable.gridColor = Color.LIGHT_GRAY
         eventTable.fillsViewportHeight = true
         eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
 
+        searchField.putClientProperty("JTextField.placeholderText", "🔍 Filter...")
         venueInfoLabel.foreground = Color.GRAY
 
-        deleteButton.foreground = Color.WHITE
+        deleteButton.foreground = Color.BLACK
         deleteButton.background = Color(220, 53, 69)
         deleteButton.isContentAreaFilled = false
         deleteButton.isOpaque = true
 
-        // Create Split Pane
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
         splitPane.leftComponent = createTablePanel()
         splitPane.rightComponent = createFormPanel()
-        splitPane.dividerLocation = 650
+        splitPane.dividerLocation = 600
         splitPane.resizeWeight = 0.7
 
         add(splitPane, BorderLayout.CENTER)
@@ -85,7 +85,7 @@ class EventPanel(
         init {
             progressBar.isStringPainted = true
             progressBar.border = BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
+                BorderFactory.createEmptyBorder(3, 3, 3, 3),
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY)
             )
             progressBar.isOpaque = true
@@ -127,67 +127,33 @@ class EventPanel(
         return panel
     }
 
-    // FIXED: Simplified Layout (Standard GridBag is safer here)
     private fun createFormPanel(): JPanel {
-        val mainPanel = JPanel(BorderLayout())
-        mainPanel.border = BorderFactory.createTitledBorder("Event Details")
-
-        val formPanel = JPanel(GridBagLayout())
+        val panel = JPanel(GridBagLayout())
+        panel.border = BorderFactory.createTitledBorder("Event Details")
         val gbc = GridBagConstraints()
-        gbc.insets = Insets(5, 5, 5, 5)
-        gbc.anchor = GridBagConstraints.WEST
-        gbc.fill = GridBagConstraints.HORIZONTAL
+        gbc.insets = Insets(5, 5, 5, 5); gbc.anchor = GridBagConstraints.WEST; gbc.fill = GridBagConstraints.HORIZONTAL
 
-        // Helper to reset GBC
-        fun resetGBC(x: Int, y: Int) {
-            gbc.gridx = x; gbc.gridy = y; gbc.gridwidth = 1; gbc.weightx = 0.0; gbc.fill = GridBagConstraints.HORIZONTAL
+        var gridY = 0
+        fun addRow(label: String, component: JComponent) {
+            gbc.gridx = 0; gbc.gridy = gridY; gbc.weightx = 0.0; panel.add(JLabel(label), gbc)
+            gbc.gridx = 1; gbc.weightx = 1.0; panel.add(component, gbc); gridY++
         }
 
-        // Row 0: Title
-        resetGBC(0, 0); formPanel.add(JLabel("Title:"), gbc)
-        resetGBC(1, 0); gbc.weightx = 1.0; formPanel.add(titleField, gbc)
+        addRow("Title:", titleField)
+        val startEditor = JSpinner.DateEditor(startDateSpinner, "yyyy-MM-dd HH:mm"); startDateSpinner.editor = startEditor; startDateSpinner.value = Date()
+        addRow("Start Time:", startDateSpinner)
+        val durPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)); durPanel.add(hoursSpinner); durPanel.add(JLabel(" h ")); durPanel.add(minutesSpinner); durPanel.add(JLabel(" m"))
+        addRow("Duration:", durPanel)
+        addRow("Venue:", venueCombo); gbc.gridx = 1; gbc.gridy = gridY; panel.add(venueInfoLabel, gbc); gridY++
+        addRow("Capacity:", maxParticipantsField)
 
-        // Row 1: Start Time
-        resetGBC(0, 1); formPanel.add(JLabel("Start:"), gbc)
-        val startEditor = JSpinner.DateEditor(startDateSpinner, "yyyy-MM-dd HH:mm")
-        startDateSpinner.editor = startEditor
-        startDateSpinner.value = Date()
-        resetGBC(1, 1); gbc.weightx = 1.0; formPanel.add(startDateSpinner, gbc)
+        descriptionArea.lineWrap = true; descriptionArea.wrapStyleWord = true; val scrollDesc = JScrollPane(descriptionArea)
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 2; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH; panel.add(scrollDesc, gbc)
 
-        // Row 2: Duration
-        resetGBC(0, 2); formPanel.add(JLabel("Duration:"), gbc)
-        val durPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
-        durPanel.add(hoursSpinner); durPanel.add(JLabel(" hrs  ")); durPanel.add(minutesSpinner); durPanel.add(JLabel(" mins"))
-        resetGBC(1, 2); gbc.weightx = 1.0; formPanel.add(durPanel, gbc)
+        gridY++; val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT)); buttonPanel.add(clearButton); buttonPanel.add(findVenueBtn); buttonPanel.add(createButton)
+        gbc.gridy = gridY; gbc.weighty = 0.0; gbc.fill = GridBagConstraints.HORIZONTAL; panel.add(buttonPanel, gbc)
 
-        // Row 3: Venue
-        resetGBC(0, 3); formPanel.add(JLabel("Venue:"), gbc)
-        resetGBC(1, 3); gbc.weightx = 1.0; formPanel.add(venueCombo, gbc)
-
-        // Row 4: Venue Info Label (small text under combo)
-        resetGBC(1, 4); formPanel.add(venueInfoLabel, gbc)
-
-        // Row 5: Capacity
-        resetGBC(0, 5); formPanel.add(JLabel("Capacity:"), gbc)
-        resetGBC(1, 5); gbc.weightx = 1.0; formPanel.add(maxParticipantsField, gbc)
-
-        // Row 6: Description (Scrollpane needs specific constraints)
-        resetGBC(0, 6); gbc.anchor = GridBagConstraints.NORTHWEST; formPanel.add(JLabel("Desc:"), gbc)
-        resetGBC(1, 6); gbc.weightx = 1.0; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH
-        descriptionArea.lineWrap = true
-        descriptionArea.wrapStyleWord = true
-        formPanel.add(JScrollPane(descriptionArea), gbc)
-
-        mainPanel.add(formPanel, BorderLayout.CENTER)
-
-        // Buttons at bottom
-        val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
-        buttonPanel.add(clearButton)
-        buttonPanel.add(findVenueBtn)
-        buttonPanel.add(createButton)
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH)
-
-        return mainPanel
+        return panel
     }
 
     private fun setupListeners() {
@@ -196,17 +162,12 @@ class EventPanel(
         clearButton.addActionListener { clearFields() }
         deleteButton.addActionListener { deleteSelectedEvent() }
 
+        venueCombo.addItemListener { e -> if (e.stateChange == ItemEvent.SELECTED) { val v = (e.item as? VenueItem)?.venue; if (v!=null) venueInfoLabel.text = "✓ ${v.name} (Cap: ${v.capacity})" } }
         venueCombo.addPopupMenuListener(object : javax.swing.event.PopupMenuListener {
             override fun popupMenuWillBecomeVisible(e: javax.swing.event.PopupMenuEvent?) { refreshVenueCombo() }
             override fun popupMenuWillBecomeInvisible(e: javax.swing.event.PopupMenuEvent?) {}
             override fun popupMenuCanceled(e: javax.swing.event.PopupMenuEvent?) {}
         })
-        venueCombo.addItemListener { e ->
-            if (e.stateChange == ItemEvent.SELECTED) {
-                val item = e.item as? VenueItem
-                if (item != null) venueInfoLabel.text = "✓ ${item.venue.name} (Cap: ${item.venue.capacity})"
-            }
-        }
 
         searchField.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) { filter() }
@@ -222,16 +183,11 @@ class EventPanel(
 
     private fun refreshEventTable() {
         tableModel.rowCount = 0
-        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        val dF = DateTimeFormatter.ofPattern("yyyy-MM-dd"); val tF = DateTimeFormatter.ofPattern("HH:mm")
         displayedEvents = eventManager.getAllEvents().sortedBy { it.dateTime }
-        displayedEvents.forEach { event ->
-            val endTime = event.getEndTime()
-            tableModel.addRow(arrayOf(
-                event.title, event.dateTime.format(dateFormatter),
-                "${event.dateTime.format(timeFormatter)} - ${endTime.format(timeFormatter)}",
-                event.venue.name, "${event.getCurrentCapacity()}/${event.maxParticipants}"
-            ))
+        displayedEvents.forEach { e ->
+            val end = e.getEndTime()
+            tableModel.addRow(arrayOf(e.title, e.dateTime.format(dF), "${e.dateTime.format(tF)} - ${end.format(tF)}", e.venue.name, "${e.getCurrentCapacity()}/${e.maxParticipants}"))
         }
     }
 
@@ -252,21 +208,20 @@ class EventPanel(
     private fun refreshVenueCombo() {
         val selected = venueCombo.selectedItem
         venueCombo.removeAllItems()
-        eventManager.getAllVenues().forEach { venue -> venueCombo.addItem(VenueItem(venue)) }
+        eventManager.getAllVenues().forEach { venueCombo.addItem(VenueItem(it)) }
         if (selected != null) venueCombo.selectedItem = selected
     }
 
     private fun createEvent() {
-        val title = titleField.text.trim(); val venueItem = venueCombo.selectedItem as? VenueItem; val description = descriptionArea.text.trim(); val maxParticipants = maxParticipantsField.text.toIntOrNull()
-        if (title.isBlank() || venueItem == null || maxParticipants == null || maxParticipants <= 0 || maxParticipants > venueItem.venue.capacity) { JOptionPane.showMessageDialog(this, "Invalid Input/Capacity", "Error", JOptionPane.ERROR_MESSAGE); return }
-        val duration = Duration.ofHours(hoursSpinner.value as Long).plusMinutes(minutesSpinner.value as Long)
-        val startDateTime = LocalDateTime.ofInstant((startDateSpinner.value as Date).toInstant(), ZoneId.systemDefault())
-        val event = Event(UUID.randomUUID().toString(), title, startDateTime, venueItem.venue, description, duration, maxParticipants)
+        val title = titleField.text.trim(); val venueItem = venueCombo.selectedItem as? VenueItem; val desc = descriptionArea.text.trim(); val cap = maxParticipantsField.text.toIntOrNull()
+        if (title.isBlank() || venueItem == null || cap == null || cap <= 0 || cap > venueItem.venue.capacity) { JOptionPane.showMessageDialog(this, "Invalid Input", "Error", JOptionPane.ERROR_MESSAGE); return }
+        val dur = Duration.ofHours(hoursSpinner.value as Long).plusMinutes(minutesSpinner.value as Long)
+        val dt = LocalDateTime.ofInstant((startDateSpinner.value as Date).toInstant(), ZoneId.systemDefault())
+        val event = Event(UUID.randomUUID().toString(), title, dt, venueItem.venue, desc, dur, cap)
         if (eventManager.getAllEvents().any { it.conflictsWith(event) }) { JOptionPane.showMessageDialog(this, "Conflict!", "Error", JOptionPane.ERROR_MESSAGE); return }
-
         val worker = object : SwingWorker<Boolean, Void>() {
             override fun doInBackground() = eventManager.addEvent(event)
-            override fun done() { if (get()) { refreshEventTable(); clearFields(); JOptionPane.showMessageDialog(this@EventPanel, "Saved!", "Success", JOptionPane.INFORMATION_MESSAGE) } else JOptionPane.showMessageDialog(this@EventPanel, "DB Error", "Error", JOptionPane.ERROR_MESSAGE) }
+            override fun done() { if (get()) { refreshEventTable(); clearFields(); JOptionPane.showMessageDialog(this@EventPanel, "Saved!", "Success", JOptionPane.INFORMATION_MESSAGE) } }
         }
         worker.execute()
     }
@@ -277,8 +232,8 @@ class EventPanel(
             val dur = Duration.ofHours(hoursSpinner.value as Long).plusMinutes(minutesSpinner.value as Long)
             val dt = LocalDateTime.ofInstant((startDateSpinner.value as Date).toInstant(), ZoneId.systemDefault())
             val res = ScalaBridge.findAvailableVenues(eventManager.getAllVenues(), eventManager.getAllEvents(), cap, dt, dur)
-            if(res.isEmpty()) JOptionPane.showMessageDialog(this, "No venues.", "Result", JOptionPane.INFORMATION_MESSAGE)
-            else { val sb = StringBuilder("Found:\n"); res.forEach { sb.append("- ${it.name}\n") }; JOptionPane.showMessageDialog(this, sb.toString(), "Result", JOptionPane.INFORMATION_MESSAGE) }
+            if(res.isEmpty()) JOptionPane.showMessageDialog(this, "No venues.", "Info", JOptionPane.INFORMATION_MESSAGE)
+            else { val sb = StringBuilder("Found:\n"); res.forEach { sb.append("- ${it.name}\n") }; JOptionPane.showMessageDialog(this, sb.toString(), "Info", JOptionPane.INFORMATION_MESSAGE) }
         } catch (e: Exception) { e.printStackTrace() }
     }
 
