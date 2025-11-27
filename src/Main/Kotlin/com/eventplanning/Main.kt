@@ -6,25 +6,32 @@ import com.eventplanning.ui.MainWindow
 import javax.swing.SwingUtilities
 
 fun main() {
-    // Initialize database
-    val dataStore = DataStore()
-    dataStore.connectToDatabase()
-    dataStore.createTables()
+    // 1. Initialize the Repository (Abstraction)
+    val repository = DataStore()
+    repository.connect()
+    repository.initializeStorage()
 
-    // Initialize EventManager and load existing data
-    val eventManager = EventManager()
-    dataStore.loadAll(eventManager)
+    // 2. Inject Repository into EventManager
+    val eventManager = EventManager(repository)
 
-    // Create and show GUI
-    val mainWindow = MainWindow(eventManager, dataStore)
+    // 3. Load data
+    if (eventManager.initializeData()) {
+        println("Data loaded successfully.")
+    } else {
+        println("Warning: Failed to load some data.")
+    }
 
+    // 4. Launch GUI
+    // Note: We don't need to pass repository to UI anymore,
+    // because EventManager handles persistence internally now!
     SwingUtilities.invokeLater {
+        val mainWindow = MainWindow(eventManager)
         mainWindow.show()
     }
 
-    // Save data when application closes
+    // 5. Shutdown hook
     Runtime.getRuntime().addShutdownHook(Thread {
-        dataStore.saveAll(eventManager)
-        dataStore.closeConnection()
+        eventManager.saveAllData()
+        repository.disconnect()
     })
 }
