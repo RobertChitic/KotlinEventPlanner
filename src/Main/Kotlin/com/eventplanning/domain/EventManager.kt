@@ -2,20 +2,11 @@ package com.eventplanning.domain
 
 import com.eventplanning.persistance.Repository
 
-/**
- * Central manager for all domain operations.
- * Coordinates between the repository and in-memory state.
- * Implements a "Database First, then Memory" transactional pattern.
- */
 class EventManager(private val repository: Repository) {
     private val venues = mutableListOf<Venue>()
     private val events = mutableListOf<Event>()
     private val participants = mutableListOf<Participant>()
 
-    /**
-     * Loads all data from the repository into memory.
-     * @return true if successful, false otherwise
-     */
     fun initializeData(): Boolean {
         return try {
             venues.clear()
@@ -36,10 +27,6 @@ class EventManager(private val repository: Repository) {
         }
     }
 
-    /**
-     * Saves all in-memory data to the repository.
-     * @return true if all saves successful, false if any failed
-     */
     fun saveAllData(): Boolean {
         var success = true
         venues.forEach { if (!repository.saveVenue(it)) success = false }
@@ -48,12 +35,7 @@ class EventManager(private val repository: Repository) {
         return success
     }
 
-    // ==================== VENUE OPERATIONS ====================
-
-    /**
-     * Adds a new venue to the system.
-     * @return true if successful, false if ID already exists or save failed
-     */
+    // --- VENUES ---
     fun addVenue(venue: Venue): Boolean {
         if (venues.any { it.id == venue.id }) return false
         if (!repository.saveVenue(venue)) return false
@@ -61,15 +43,8 @@ class EventManager(private val repository: Repository) {
         return true
     }
 
-    /**
-     * Deletes a venue from the system.
-     * @return true if successful, false if venue is used by events or delete failed
-     */
     fun deleteVenue(venue: Venue): Boolean {
-        if (events.any { it.venue.id == venue.id }) {
-            return false // Cannot delete venue if events depend on it
-        }
-
+        if (events.any { it.venue.id == venue.id }) return false
         if (repository.deleteVenue(venue.id)) {
             venues.removeIf { it.id == venue.id }
             return true
@@ -77,12 +52,7 @@ class EventManager(private val repository: Repository) {
         return false
     }
 
-    // ==================== PARTICIPANT OPERATIONS ====================
-
-    /**
-     * Adds a new participant to the system.
-     * @return true if successful, false if ID already exists or save failed
-     */
+    // --- PARTICIPANTS ---
     fun addParticipant(participant: Participant): Boolean {
         if (participants.any { it.id == participant.id }) return false
         if (!repository.saveParticipant(participant)) return false
@@ -90,11 +60,6 @@ class EventManager(private val repository: Repository) {
         return true
     }
 
-    /**
-     * Deletes a participant from the system.
-     * Also removes them from any events they were registered to.
-     * @return true if successful, false if delete failed
-     */
     fun deleteParticipant(participant: Participant): Boolean {
         if (repository.deleteParticipant(participant.id)) {
             participants.removeIf { it.id == participant.id }
@@ -104,41 +69,50 @@ class EventManager(private val repository: Repository) {
         return false
     }
 
-    // ==================== EVENT OPERATIONS ====================
-
-    /**
-     * Adds a new event to the system.
-     * Validates for conflicts before saving.
-     * @return true if successful, false if ID exists, conflicts detected, or save failed
-     */
+    // --- EVENTS ---
     fun addEvent(event: Event): Boolean {
         if (events.any { it.id == event.id }) return false
 
-        val hasConflict = events.any { existingEvent ->
-            event.conflictsWith(existingEvent)
-        }
-
-        if (hasConflict) return false
+        // Check for conflicts with ANY event
+        if (events.any { it.conflictsWith(event) }) return false
 
         if (!repository.saveEvent(event)) return false
-
         events.add(event)
         return true
     }
 
     /**
-     * Updates an existing event in the repository.
-     * Used primarily for updating registrations.
-     * @return true if save successful, false otherwise
+     * NEW: Modifies an existing event.
+     * Checks for conflicts with OTHER events (excluding itself).
      */
-    fun updateEvent(event: Event): Boolean {
-        return repository.saveEvent(event)
+    fun modifyEvent(updatedEvent: Event): Boolean {
+        // 1. Validation: Ensure capacity isn't lower than current registrations
+        if (updatedEvent.maxParticipants < updatedEvent.getCurrentCapacity()) {
+            return false // Cannot reduce capacity below current participant count
+        }
+
+        // 2. Conflict Check: Check against everything EXCEPT the event we are updating
+        val hasConflict = events
+            .filter { it.id != updatedEvent.id } // Ignore self
+            .any { it.conflictsWith(updatedEvent) }
+
+        if (hasConflict) return false
+
+        // 3. Save to DB
+        if (!repository.saveEvent(updatedEvent)) return false
+
+        // 4. Update Memory (Replace old object with new one)
+        val index = events.indexOfFirst { it.id == updatedEvent.id }
+        if (index != -1) {
+            events[index] = updatedEvent
+        } else {
+            events.add(updatedEvent) // Should not happen, but safe fallback
+        }
+        return true
     }
 
-    /**
-     * Deletes an event from the system.
-     * @return true if successful, false if delete failed
-     */
+    fun updateEvent(event: Event): Boolean = repository.saveEvent(event)
+
     fun deleteEvent(event: Event): Boolean {
         if (repository.deleteEvent(event.id)) {
             events.removeIf { it.id == event.id }
@@ -147,23 +121,11 @@ class EventManager(private val repository: Repository) {
         return false
     }
 
-    // ==================== READ OPERATIONS ====================
-
+    // --- READ ---
     fun getAllVenues(): List<Venue> = venues.toList()
     fun getVenueById(id: String): Venue? = venues.find { it.id == id }
     fun getAllEvents(): List<Event> = events.toList()
     fun getEventById(id: String): Event? = events.find { it.id == id }
     fun getAllParticipants(): List<Participant> = participants.toList()
     fun getParticipantById(id: String): Participant? = participants.find { it.id == id }
-
-    /**
-     * Returns events sorted by date/time.
-     */
-    fun getEventsSortedByDate(): List<Event> = events.sortedBy { it.dateTime }
-
-    /**
-     * Returns events at a specific venue.
-     */
-    fun getEventsByVenue(venueId: String): List<Event> =
-        events.filter { it.venue.id == venueId }
 }
