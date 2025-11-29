@@ -5,17 +5,15 @@ import com.eventplanning.service.ScalaBridge
 import javax.swing.*
 import java.awt.BorderLayout
 import java.awt.Dimension
-import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatLightLaf
+import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatLaf
 
-/**
- * Main application window containing all UI tabs.
- */
 class MainWindow(private val eventManager: EventManager) {
 
     private val frame = JFrame("Event Planning Application")
     private val tabbedPane = JTabbedPane()
+    private val statsPanel = StatisticsPanel(eventManager)
 
     fun show() {
         setupFrame()
@@ -26,42 +24,50 @@ class MainWindow(private val eventManager: EventManager) {
     private fun setupFrame() {
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.size = Dimension(1100, 750)
-        frame.setLocationRelativeTo(null) // Center on screen
+        frame.setLocationRelativeTo(null)
         frame.layout = BorderLayout()
 
         val menuBar = createMenuBar()
         frame.jMenuBar = menuBar
         frame.add(tabbedPane, BorderLayout.CENTER)
+
+        tabbedPane.addChangeListener {
+            if (tabbedPane.selectedComponent == statsPanel) {
+                statsPanel.refreshStats()
+            }
+        }
     }
 
     private fun createMenuBar(): JMenuBar {
         val menuBar = JMenuBar()
 
-        // File Menu
+        // File
         val fileMenu = JMenu("File")
-        val saveItem = JMenuItem("Save All").apply {
-            addActionListener { saveAllData() }
-        }
-        val loadItem = JMenuItem("Reload Data").apply {
-            addActionListener { reloadData() }
-        }
-        val exitItem = JMenuItem("Exit").apply {
-            addActionListener { exitApplication() }
-        }
+        val saveItem = JMenuItem("Save All").apply { addActionListener { saveAllData() } }
+        val loadItem = JMenuItem("Reload Data").apply { addActionListener { reloadData() } }
+        val exitItem = JMenuItem("Exit").apply { addActionListener { exitApplication() } }
 
-        fileMenu.add(saveItem)
-        fileMenu.add(loadItem)
-        fileMenu.addSeparator()
-        fileMenu.add(exitItem)
+        fileMenu.add(saveItem); fileMenu.add(loadItem); fileMenu.addSeparator(); fileMenu.add(exitItem)
 
-        // Tools Menu
+        // Tools
         val toolsMenu = JMenu("Tools")
-        val scheduleItem = JMenuItem("Generate Schedule (Scala)").apply {
-            addActionListener { generateSchedule() }
-        }
+        val scheduleItem = JMenuItem("Generate Schedule (Scala)").apply { addActionListener { generateSchedule() } }
 
-        val darkModeItem = JMenuItem("Toggle Dark Mode").apply {
-            addActionListener { toggleDarkMode() }
+        // --- DARK MODE (Back in Tools Menu) ---
+        val darkModeItem = JMenuItem("Toggle Dark Mode")
+        darkModeItem.addActionListener {
+            SwingUtilities.invokeLater {
+                try {
+                    if (FlatLaf.isLafDark()) {
+                        UIManager.setLookAndFeel(FlatLightLaf())
+                    } else {
+                        UIManager.setLookAndFeel(FlatDarkLaf())
+                    }
+                    FlatLaf.updateUI()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
 
         toolsMenu.add(scheduleItem)
@@ -70,94 +76,44 @@ class MainWindow(private val eventManager: EventManager) {
 
         menuBar.add(fileMenu)
         menuBar.add(toolsMenu)
-
         return menuBar
     }
 
     private fun addTabs() {
-        // Emojis removed to prevent text rendering issues
+        // --- NO EMOJIS ---
+        tabbedPane.addTab("Dashboard", statsPanel)
         tabbedPane.addTab("Venues", VenuePanel(eventManager))
         tabbedPane.addTab("Events", EventPanel(eventManager))
         tabbedPane.addTab("Participants", ParticipantPanel(eventManager))
         tabbedPane.addTab("Registration", RegistrationPanel(eventManager))
     }
 
-    private fun toggleDarkMode() {
-        try {
-            if (FlatLaf.isLafDark()) {
-                UIManager.setLookAndFeel(FlatLightLaf())
-            } else {
-                UIManager.setLookAndFeel(FlatDarkLaf())
-            }
-            SwingUtilities.updateComponentTreeUI(frame)
-        } catch (e: Exception) {
-            JOptionPane.showMessageDialog(
-                frame,
-                "Failed to switch theme: ${e.message}",
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-            )
-        }
-    }
-
     private fun refreshAllPanels() {
         tabbedPane.removeAll()
         addTabs()
+        statsPanel.refreshStats()
     }
 
     private fun saveAllData() {
         val worker = object : SwingWorker<Boolean, Void>() {
             override fun doInBackground(): Boolean = eventManager.saveAllData()
             override fun done() {
-                if (get()) {
-                    JOptionPane.showMessageDialog(
-                        frame,
-                        "All data saved successfully!",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE
-                    )
-                } else {
-                    JOptionPane.showMessageDialog(
-                        frame,
-                        "Failed to save some data. Check console for details.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                    )
-                }
+                if (get()) JOptionPane.showMessageDialog(frame, "Saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                else JOptionPane.showMessageDialog(frame, "Save failed.", "Error", JOptionPane.ERROR_MESSAGE)
             }
         }
         worker.execute()
     }
 
     private fun reloadData() {
-        val confirm = JOptionPane.showConfirmDialog(
-            frame,
-            "Reload all data from the database?\nAny unsaved changes will be lost.",
-            "Confirm Reload",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
-        )
-
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (JOptionPane.showConfirmDialog(frame, "Reload data? Unsaved changes will be lost.", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             val worker = object : SwingWorker<Boolean, Void>() {
                 override fun doInBackground(): Boolean = eventManager.initializeData()
                 override fun done() {
                     if (get()) {
                         refreshAllPanels()
-                        JOptionPane.showMessageDialog(
-                            frame,
-                            "Data reloaded successfully!",
-                            "Success",
-                            JOptionPane.INFORMATION_MESSAGE
-                        )
-                    } else {
-                        JOptionPane.showMessageDialog(
-                            frame,
-                            "Failed to reload data. Check console for details.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE
-                        )
-                    }
+                        JOptionPane.showMessageDialog(frame, "Reloaded!", "Success", JOptionPane.INFORMATION_MESSAGE)
+                    } else JOptionPane.showMessageDialog(frame, "Reload failed.", "Error", JOptionPane.ERROR_MESSAGE)
                 }
             }
             worker.execute()
@@ -165,98 +121,36 @@ class MainWindow(private val eventManager: EventManager) {
     }
 
     private fun exitApplication() {
-        val confirm = JOptionPane.showConfirmDialog(
-            frame,
-            "Save all data before exiting?",
-            "Exit Application",
-            JOptionPane.YES_NO_CANCEL_OPTION
-        )
-
-        when (confirm) {
-            JOptionPane.YES_OPTION -> {
-                eventManager.saveAllData()
-                System.exit(0)
-            }
-            JOptionPane.NO_OPTION -> System.exit(0)
-            // CANCEL - do nothing
+        if (JOptionPane.showConfirmDialog(frame, "Save before exiting?", "Exit", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            eventManager.saveAllData()
         }
+        System.exit(0)
     }
 
     private fun generateSchedule() {
         val events = eventManager.getAllEvents()
         val venues = eventManager.getAllVenues()
-
-        if (events.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                frame,
-                "No events to schedule.",
-                "No Events",
-                JOptionPane.INFORMATION_MESSAGE
-            )
-            return
-        }
-
-        // Show loading dialog
-        val loadingDialog = JDialog(frame, "Generating Schedule...", true)
-        loadingDialog.defaultCloseOperation = JDialog.DO_NOTHING_ON_CLOSE
-        loadingDialog.add(JLabel("Please wait...", SwingConstants.CENTER))
-        loadingDialog.setSize(200, 100)
-        loadingDialog.setLocationRelativeTo(frame)
+        if (events.isEmpty()) { JOptionPane.showMessageDialog(frame, "No events.", "Info", JOptionPane.INFORMATION_MESSAGE); return }
 
         val worker = object : SwingWorker<ScalaBridge.SchedulerResult, Void>() {
-            override fun doInBackground(): ScalaBridge.SchedulerResult {
-                return ScalaBridge.generateSchedule(events, venues)
-            }
-
-            override fun done() {
-                loadingDialog.dispose()
-                displayScheduleResult(get())
-            }
+            override fun doInBackground() = ScalaBridge.generateSchedule(events, venues)
+            override fun done() { displayScheduleResult(get()) }
         }
-
         worker.execute()
-        loadingDialog.isVisible = true
     }
 
     private fun displayScheduleResult(result: ScalaBridge.SchedulerResult) {
         when (result) {
             is ScalaBridge.SchedulerResult.Success -> {
                 val message = buildString {
-                    appendLine("SCHEDULE GENERATED SUCCESSFULLY")
-                    appendLine("========================================")
-                    appendLine()
-                    result.schedule.forEach { entry ->
-                        appendLine("Event: ${entry.eventTitle}")
-                        appendLine("   Venue: ${entry.venue}")
-                        appendLine("   Time:  ${entry.dateTime}")
-                        appendLine("----------------------------------------")
-                    }
+                    appendLine("SCHEDULE GENERATED")
+                    appendLine("=".repeat(30))
+                    result.schedule.forEach { e -> appendLine("Event: ${e.eventTitle}\n   Venue: ${e.venue}\n   Time:  ${e.dateTime}\n${"-".repeat(20)}") }
                 }
-
-                val textArea = JTextArea(message).apply {
-                    isEditable = false
-                    font = font.deriveFont(12f)
-                }
-                val scrollPane = JScrollPane(textArea).apply {
-                    preferredSize = Dimension(450, 350)
-                }
-
-                JOptionPane.showMessageDialog(
-                    frame,
-                    scrollPane,
-                    "Generated Schedule",
-                    JOptionPane.INFORMATION_MESSAGE
-                )
+                val textArea = JTextArea(message).apply { isEditable = false }
+                JOptionPane.showMessageDialog(frame, JScrollPane(textArea).apply { preferredSize = Dimension(400, 300) }, "Schedule", JOptionPane.INFORMATION_MESSAGE)
             }
-
-            is ScalaBridge.SchedulerResult.Error -> {
-                JOptionPane.showMessageDialog(
-                    frame,
-                    "Scheduling Failed:\n\n${result.message}\n\nFailed events: ${result.failedCount}",
-                    "Scheduling Error",
-                    JOptionPane.ERROR_MESSAGE
-                )
-            }
+            is ScalaBridge.SchedulerResult.Error -> JOptionPane.showMessageDialog(frame, result.message, "Error", JOptionPane.ERROR_MESSAGE)
         }
     }
 }
