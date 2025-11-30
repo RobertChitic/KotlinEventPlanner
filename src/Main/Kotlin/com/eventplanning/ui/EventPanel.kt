@@ -64,9 +64,9 @@ class EventPanel(
 
     private val createButton = JButton("Create Event")
     private val clearButton = JButton("Clear")
-    private val editButton = JButton("✎ Edit Event") // NEW BUTTON
+    private val editButton = JButton("Edit Event")
     private val findVenueBtn = JButton("Find Slot")
-    private val deleteButton = JButton("❌ Delete Event")
+    private val deleteButton = JButton("Delete Event")
 
     init {
         layout = BorderLayout()
@@ -82,16 +82,18 @@ class EventPanel(
         searchField.putClientProperty("JTextField.placeholderText", "🔍 Filter...")
         venueInfoLabel.foreground = Color.GRAY
 
-        deleteButton.foreground = Color.WHITE
-        deleteButton.background = Color(220, 53, 69)
-        deleteButton.isContentAreaFilled = false
-        deleteButton.isOpaque = true
+        deleteButton.apply {
+            foreground = Color.WHITE
+            background = Color(220, 53, 69)
+            isOpaque = true
+        }
 
         // Style Edit Button
-        editButton.foreground = Color.WHITE
-        editButton.background = Color(255, 193, 7) // Orange/Yellow
-        editButton.isContentAreaFilled = false
-        editButton.isOpaque = true
+        editButton.apply {
+            foreground = Color.WHITE
+            background = Color(65, 105, 225)
+            isOpaque = true
+        }
 
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
         splitPane.leftComponent = createTablePanel()
