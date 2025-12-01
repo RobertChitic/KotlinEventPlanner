@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter
 /**
  * SQLite implementation of the Repository interface.
  * Handles all database operations with proper transaction support.
+ *
  */
 class DataStore(private val dbPath: String = "events.db") : Repository {
 
@@ -88,8 +89,16 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         try {
             Class.forName("org.sqlite.JDBC")
             connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
-            connection?.createStatement()?.execute("PRAGMA foreign_keys = ON;")
+
+            // Fix 1: Use .use {} to ensure Statement is closed, preventing resource leaks.
+            connection?.createStatement()?.use { stmt ->
+                stmt.execute("PRAGMA foreign_keys = ON;")
+            }
             println("Database connected successfully: $dbPath")
+        } catch (e: SQLException) {
+            // Fix 3: Handle invalid paths gracefully
+            System.err.println("Database Error: Could not open file at '$dbPath'. Check permissions or path validity.")
+            throw IllegalArgumentException("Invalid database path or permissions issue: $dbPath", e)
         } catch (e: Exception) {
             System.err.println("Error connecting to database: ${e.message}")
             throw e
@@ -114,6 +123,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
 
     // ==================== VENUE OPERATIONS ====================
 
+    @Synchronized // Fix 6 mitigation: Prevent concurrent writes
     override fun saveVenue(venue: Venue): Boolean {
         val conn = connection ?: return false
         return try {
@@ -133,6 +143,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         }
     }
 
+    @Synchronized
     override fun deleteVenue(id: String): Boolean {
         val conn = connection ?: return false
         return try {
@@ -160,8 +171,10 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                             capacity = rs.getInt("capacity"),
                             location = rs.getString("location"),
                             address = rs.getString("address"),
+                            // Fix 2: Trim strings to prevent " Wifi" bug
                             facilities = rs.getString("facilities")
                                 ?.split(",")
+                                ?.map { it.trim() }
                                 ?.filter { it.isNotBlank() }
                                 ?: emptyList()
                         )
@@ -176,6 +189,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
 
     // ==================== PARTICIPANT OPERATIONS ====================
 
+    @Synchronized
     override fun saveParticipant(participant: Participant): Boolean {
         val conn = connection ?: return false
         return try {
@@ -194,6 +208,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         }
     }
 
+    @Synchronized
     override fun deleteParticipant(id: String): Boolean {
         val conn = connection ?: return false
         return try {
@@ -233,12 +248,13 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
 
     // ==================== EVENT OPERATIONS ====================
 
+    @Synchronized
     override fun saveEvent(event: Event): Boolean {
         val conn = connection ?: return false
         val originalAutoCommit = conn.autoCommit
 
         return try {
-            conn.autoCommit = false
+            conn.autoCommit = false // Begin Transaction
 
             // Save event details
             conn.prepareStatement(SqlQueries.INSERT_EVENT).use { stmt ->
@@ -268,7 +284,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                 }
             }
 
-            conn.commit()
+            conn.commit() // Commit Transaction
             true
         } catch (e: SQLException) {
             try {
@@ -283,6 +299,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         }
     }
 
+    @Synchronized
     override fun deleteEvent(id: String): Boolean {
         val conn = connection ?: return false
         return try {
@@ -325,30 +342,41 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                 while (rs.next()) {
                     val eventId = rs.getString("id")
                     val venueId = rs.getString("venue_id")
-                    val venue = venueLookup(venueId)
+                    val maxParticipants = rs.getInt("max_participants")
+                    var venue = venueLookup(venueId)
 
-                    if (venue != null) {
-                        val event = Event(
-                            id = eventId,
-                            title = rs.getString("title"),
-                            dateTime = LocalDateTime.parse(rs.getString("dateTime"), dateTimeFormatter),
-                            venue = venue,
-                            description = rs.getString("description") ?: "",
-                            duration = Duration.ofMinutes(rs.getLong("duration_minutes")),
-                            maxParticipants = rs.getInt("max_participants")
+                    // Fix 4: Handle Orphaned Events (Missing Venue)
+                    // If the venue is missing (deleted directly from DB?), use a placeholder
+                    // so the event still loads and can be managed/deleted by the user.
+                    if (venue == null) {
+                        System.err.println("Warning: Event '$eventId' references missing venue '$venueId'. Loading as placeholder.")
+                        venue = Venue(
+                            id = "unknown_venue",
+                            name = "UNKNOWN VENUE (Missing Data)",
+                            capacity = maxParticipants, // Fix: Use maxParticipants to prevent Event constructor validation failure
+                            location = "Unknown",
+                            address = "Unknown"
                         )
-
-                        // Attach participants from pre-loaded map
-                        registrationMap[eventId]?.forEach { participantId ->
-                            participantLookup(participantId)?.let { participant ->
-                                event.registerParticipant(participant)
-                            }
-                        }
-
-                        events.add(event)
-                    } else {
-                        System.err.println("Warning: Event '$eventId' references missing venue '$venueId'")
                     }
+
+                    val event = Event(
+                        id = eventId,
+                        title = rs.getString("title") + (if (venue.id == "unknown_venue") " [DATA ERROR]" else ""),
+                        dateTime = LocalDateTime.parse(rs.getString("dateTime"), dateTimeFormatter),
+                        venue = venue,
+                        description = rs.getString("description") ?: "",
+                        duration = Duration.ofMinutes(rs.getLong("duration_minutes")),
+                        maxParticipants = maxParticipants
+                    )
+
+                    // Attach participants from pre-loaded map
+                    registrationMap[eventId]?.forEach { participantId ->
+                        participantLookup(participantId)?.let { participant ->
+                            event.registerParticipant(participant)
+                        }
+                    }
+
+                    events.add(event)
                 }
             }
         } catch (e: SQLException) {
