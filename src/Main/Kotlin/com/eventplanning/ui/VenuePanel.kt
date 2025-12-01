@@ -23,6 +23,12 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     private val addressField = UIStyles.createTextField()
     private val facilitiesField = UIStyles.createTextField()
 
+    // Labels tracking for theming
+    private val formLabels = mutableListOf<JLabel>()
+    private val headerLabel = UIStyles.createHeaderLabel("Venues")
+    private val sectionList = UIStyles.createSectionLabel("ALL VENUES")
+    private val sectionAdd = UIStyles.createSectionLabel("ADD NEW VENUE")
+
     // Buttons
     private val addButton = UIStyles.createPrimaryButton("Add Venue")
     private val clearButton = UIStyles.createSecondaryButton("Clear")
@@ -30,10 +36,9 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
     init {
         layout = BorderLayout(0, 20)
-        background = UIStyles.background
         isOpaque = false
 
-        add(UIStyles.createHeaderLabel("Venues"), BorderLayout.NORTH)
+        add(headerLabel, BorderLayout.NORTH)
 
         val contentPanel = JPanel(GridBagLayout())
         contentPanel.isOpaque = false
@@ -48,13 +53,40 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
         contentPanel.add(createFormCard(), gbc)
 
         add(contentPanel, BorderLayout.CENTER)
+
+        applyTheme() // Apply initial theme
         setupListeners()
         refreshVenueTable()
     }
 
+    fun applyTheme() {
+        // Update Labels
+        headerLabel.foreground = UIStyles.textPrimary
+        sectionList.foreground = UIStyles.textMuted
+        sectionAdd.foreground = UIStyles.textMuted
+        formLabels.forEach { it.foreground = UIStyles.textSecondary }
+
+        // Update Inputs
+        val inputs = listOf(nameField, capacityField, locationField, addressField, facilitiesField)
+        inputs.forEach {
+            it.background = UIStyles.inputBackground
+            it.foreground = UIStyles.textPrimary
+            it.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UIStyles.tableBorder),
+                EmptyBorder(8, 10, 8, 10)
+            )
+        }
+
+        // Update Table
+        UIStyles.styleTable(venueTable)
+
+        // Redraw
+        this.repaint()
+    }
+
     private fun createTableCard(): JPanel {
         val card = UIStyles.createCardPanel()
-        card.add(UIStyles.createSectionLabel("ALL VENUES"), BorderLayout.NORTH)
+        card.add(sectionList, BorderLayout.NORTH)
 
         UIStyles.styleTable(venueTable)
         card.add(UIStyles.createScrollPane(venueTable), BorderLayout.CENTER)
@@ -67,15 +99,17 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
     private fun createFormCard(): JPanel {
         val card = UIStyles.createCardPanel()
-        card.add(UIStyles.createSectionLabel("ADD NEW VENUE"), BorderLayout.NORTH)
+        card.add(sectionAdd, BorderLayout.NORTH)
 
         val form = JPanel(GridBagLayout()); form.isOpaque = false
         val gbc = GridBagConstraints().apply { fill = GridBagConstraints.HORIZONTAL; insets = Insets(0, 0, 15, 0); weightx = 1.0; gridx = 0 }
         var y = 0
 
-        fun addIn(label: String, comp: JComponent) {
+        fun addIn(text: String, comp: JComponent) {
             gbc.gridy = y++
-            form.add(UIStyles.createLabel(label), gbc)
+            val label = UIStyles.createLabel(text)
+            formLabels.add(label) // Track for theming
+            form.add(label, gbc)
             gbc.gridy = y++
             form.add(comp, gbc)
         }

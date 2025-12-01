@@ -8,22 +8,88 @@ import javax.swing.table.DefaultTableCellRenderer
 
 object UIStyles {
 
-    // === COLOR PALETTE ===
-    val background = Color(18, 18, 18)
-    val cardBackground = Color(33, 33, 33)
-    val inputBackground = Color(60, 60, 60)
-    val hoverOverlay = Color(255, 255, 255, 15)
+    // === THEME DEFINITION ===
+    data class Theme(
+        val isDark: Boolean,
+        val background: Color,
+        val cardBackground: Color,
+        val inputBackground: Color,
+        val sidebarBackground: Color,
+        val textPrimary: Color,
+        val textSecondary: Color,
+        val textMuted: Color,
+        val tableBorder: Color,
+        val tableSelection: Color,
 
-    val textPrimary = Color(255, 255, 255)
-    val textSecondary = Color(179, 179, 179)
-    val textMuted = Color(110, 110, 110)
+        // Accents (With Defaults)
+        val accentGreen: Color = Color(30, 215, 96),
+        val accentBlue: Color = Color(65, 105, 225),
+        val accentRed: Color = Color(225, 50, 50),
+        val accentOrange: Color = Color(255, 165, 0),
+        val accentPurple: Color = Color(138, 43, 226),
+        val accentPink: Color = Color(255, 105, 180)
+    )
 
-    val accentGreen = Color(30, 215, 96)
-    val accentBlue = Color(65, 105, 225)
-    val accentRed = Color(225, 50, 50)
+    // === PRESETS ===
+    val DarkTheme = Theme(
+        isDark = true,
+        background = Color(18, 18, 18),
+        cardBackground = Color(33, 33, 33),
+        inputBackground = Color(60, 60, 60),
+        sidebarBackground = Color(12, 12, 12),
+        textPrimary = Color(255, 255, 255),
+        textSecondary = Color(179, 179, 179),
+        textMuted = Color(110, 110, 110),
+        tableBorder = Color(50, 50, 50),
+        tableSelection = Color(50, 50, 50)
+    )
 
-    val tableBorder = Color(50, 50, 50)
-    val tableSelection = Color(50, 50, 50)
+    val LightTheme = Theme(
+        isDark = false,
+        background = Color(240, 242, 245),
+        cardBackground = Color(255, 255, 255),
+        inputBackground = Color(255, 255, 255),
+        sidebarBackground = Color(12, 12, 12),
+        textPrimary = Color(30, 30, 30),
+        textSecondary = Color(80, 80, 80),
+        textMuted = Color(120, 120, 120),
+        tableBorder = Color(220, 220, 220),
+        tableSelection = Color(230, 240, 255)
+    )
+
+    // === STATE MANAGEMENT ===
+    var current: Theme = DarkTheme
+        private set
+
+    private val listeners = mutableListOf<() -> Unit>()
+
+    fun addThemeListener(listener: () -> Unit) {
+        listeners.add(listener)
+    }
+
+    fun toggleTheme() {
+        current = if (current == DarkTheme) LightTheme else DarkTheme
+        listeners.forEach { it() }
+    }
+
+    // === ACCESSORS (Dynamic) ===
+    val background get() = current.background
+    val cardBackground get() = current.cardBackground
+    val inputBackground get() = current.inputBackground
+    val sidebarBackground get() = current.sidebarBackground
+    val textPrimary get() = current.textPrimary
+    val textSecondary get() = current.textSecondary
+    val textMuted get() = current.textMuted
+    val tableBorder get() = current.tableBorder
+    val tableSelection get() = current.tableSelection
+
+    // Accents
+    val accentGreen get() = current.accentGreen
+    val accentBlue get() = current.accentBlue
+    val accentRed get() = current.accentRed
+    val accentOrange get() = current.accentOrange
+    val accentPurple get() = current.accentPurple
+    val accentPink get() = current.accentPink
 
     // === FONTS ===
     val fontHeader = Font("Segoe UI", Font.BOLD, 26)
@@ -77,44 +143,10 @@ object UIStyles {
             caretColor = accentGreen
             lineWrap = true
             wrapStyleWord = true
-            border = EmptyBorder(10, 10, 10, 10)
+            border = BorderFactory.createLineBorder(tableBorder, 1)
         }
     }
 
-    // --- BUTTONS ---
-
-    fun createPrimaryButton(text: String): JButton = createStyledButton(text, accentGreen, Color.BLACK)
-    fun createSecondaryButton(text: String): JButton = createStyledButton(text, Color(80, 80, 80), textPrimary)
-    fun createDangerButton(text: String): JButton = createStyledButton(text, accentRed, textPrimary)
-    fun createAccentButton(text: String): JButton = createStyledButton(text, accentBlue, textPrimary)
-
-    private fun createStyledButton(text: String, bgColor: Color, fgColor: Color): JButton {
-        return object : JButton(text) {
-            private var isHovering = false
-            init {
-                font = fontBold
-                foreground = fgColor
-                isFocusPainted = false
-                isBorderPainted = false
-                isContentAreaFilled = false
-                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                border = EmptyBorder(10, 20, 10, 20)
-                addMouseListener(object : java.awt.event.MouseAdapter() {
-                    override fun mouseEntered(e: java.awt.event.MouseEvent) { isHovering = true; repaint() }
-                    override fun mouseExited(e: java.awt.event.MouseEvent) { isHovering = false; repaint() }
-                })
-            }
-            override fun paintComponent(g: Graphics) {
-                val g2 = g as Graphics2D
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-                g2.color = if (isHovering) bgColor.brighter() else bgColor
-                g2.fill(RoundRectangle2D.Float(0f, 0f, width.toFloat(), height.toFloat(), 20f, 20f))
-                super.paintComponent(g)
-            }
-        }
-    }
-
-    // --- NEW: COMBO BOX ---
     fun createComboBox(): JComboBox<Any> {
         val combo = JComboBox<Any>()
         combo.font = fontBody
@@ -122,6 +154,34 @@ object UIStyles {
         combo.foreground = textPrimary
         combo.border = BorderFactory.createLineBorder(tableBorder, 1)
         return combo
+    }
+
+    //Buttons
+    fun createPrimaryButton(text: String): JButton = createStyledButton(text, accentGreen, Color.BLACK)
+    fun createSecondaryButton(text: String): JButton = createStyledButton(text, Color(100, 100, 100), Color.WHITE)
+    fun createDangerButton(text: String): JButton = createStyledButton(text, accentRed, Color.WHITE)
+    fun createAccentButton(text: String): JButton = createStyledButton(text, accentBlue, Color.WHITE)
+
+    private fun createStyledButton(text: String, bgColor: Color, fgColor: Color): JButton {
+        return object : JButton(text) {
+            init {
+                font = fontBold
+                foreground = fgColor
+                background = bgColor
+                isFocusPainted = false
+                isBorderPainted = false
+                isContentAreaFilled = false
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                border = EmptyBorder(10, 20, 10, 20)
+            }
+            override fun paintComponent(g: Graphics) {
+                val g2 = g as Graphics2D
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                g2.color = if (model.isRollover) bgColor.brighter() else bgColor
+                g2.fill(RoundRectangle2D.Float(0f, 0f, width.toFloat(), height.toFloat(), 20f, 20f))
+                super.paintComponent(g)
+            }
+        }
     }
 
     // --- CARDS & TABLES ---
@@ -145,7 +205,7 @@ object UIStyles {
             background = cardBackground
             foreground = textPrimary
             selectionBackground = tableSelection
-            selectionForeground = accentGreen
+            selectionForeground = if(current.isDark) accentGreen else Color.BLACK
             gridColor = tableBorder
             rowHeight = 40
             font = fontBody

@@ -5,6 +5,7 @@ import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import com.eventplanning.service.ScalaBridge
 import javax.swing.*
+import javax.swing.border.EmptyBorder
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableCellRenderer
@@ -32,39 +33,31 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
     private val eventTable = JTable(tableModel)
     private val tableSorter = TableRowSorter(tableModel)
 
-    // Inputs
+    // Inputs & Labels
+    private val headerLabel = UIStyles.createHeaderLabel("Events Management")
+    private val sectionSchedule = UIStyles.createSectionLabel("SCHEDULE")
+    private val sectionDetails = UIStyles.createSectionLabel("EVENT DETAILS")
+
+    private val lblTitle = UIStyles.createLabel("Event Title")
+    private val lblDate = UIStyles.createLabel("Start Date & Time")
+    private val lblDur = UIStyles.createLabel("Duration")
+    private val lblVen = UIStyles.createLabel("Venue")
+    private val lblCap = UIStyles.createLabel("Max Capacity")
+    private val lblDesc = UIStyles.createLabel("Description")
+
     private val searchField = UIStyles.createTextField(15).apply {
         putClientProperty("JTextField.placeholderText", "Search...")
     }
     private val titleField = UIStyles.createTextField()
-
-    // Styled Components
     private val venueCombo = UIStyles.createComboBox()
-
-    // --- DARK THEMED SPINNERS ---
-
-    // Date Spinner
-    private val dateSpinner = JSpinner(SpinnerDateModel().apply {
-        calendarField = Calendar.DAY_OF_MONTH
-    }).apply {
-        editor = JSpinner.DateEditor(this, "dd/MM/yyyy")
-        applyDarkSpinnerStyle(this)
-    }
-
-    // Time Spinner
-    private val timeSpinner = JSpinner(SpinnerDateModel().apply {
-        calendarField = Calendar.MINUTE
-    }).apply {
-        editor = JSpinner.DateEditor(this, "HH:mm")
-        applyDarkSpinnerStyle(this)
-    }
-
-    // Duration Spinners
-    private val hoursSpinner = JSpinner(SpinnerNumberModel(2, 0, 24, 1)).apply { applyDarkSpinnerStyle(this) }
-    private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15)).apply { applyDarkSpinnerStyle(this) }
-
     private val descriptionArea = UIStyles.createTextArea(3, 20)
     private val maxParticipantsField = UIStyles.createTextField(10)
+
+    // Spinners
+    private val dateSpinner = JSpinner(SpinnerDateModel().apply { calendarField = Calendar.DAY_OF_MONTH }).apply { editor = JSpinner.DateEditor(this, "dd/MM/yyyy") }
+    private val timeSpinner = JSpinner(SpinnerDateModel().apply { calendarField = Calendar.MINUTE }).apply { editor = JSpinner.DateEditor(this, "HH:mm") }
+    private val hoursSpinner = JSpinner(SpinnerNumberModel(2, 0, 24, 1))
+    private val minutesSpinner = JSpinner(SpinnerNumberModel(0, 0, 59, 15))
 
     // Buttons
     private val saveButton = UIStyles.createPrimaryButton("Save Event")
@@ -75,182 +68,154 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     init {
         layout = BorderLayout(0, 20)
-        background = UIStyles.background
         isOpaque = false
 
-        // Header
-        add(UIStyles.createHeaderLabel("Events Management"), BorderLayout.NORTH)
+        add(headerLabel, BorderLayout.NORTH)
 
-        // Main Layout
         val content = JPanel(GridBagLayout())
         content.isOpaque = false
-        val gbc = GridBagConstraints().apply {
-            fill = GridBagConstraints.BOTH
-            insets = Insets(0, 0, 0, 20)
-        }
+        val gbc = GridBagConstraints().apply { fill = GridBagConstraints.BOTH; insets = Insets(0, 0, 0, 20) }
 
-        // Left: Table
         gbc.gridx = 0; gbc.weightx = 0.65; gbc.weighty = 1.0
         content.add(createTableCard(), gbc)
 
-        // Right: Form
         gbc.gridx = 1; gbc.weightx = 0.35; gbc.insets = Insets(0, 0, 0, 0)
         content.add(createFormCard(), gbc)
 
         add(content, BorderLayout.CENTER)
 
+        applyTheme() // Apply initial styles
         refreshEventTable()
         refreshVenueCombo()
         setupListeners()
     }
 
-    // --- STYLE HELPER FOR DARK SPINNERS ---
-    private fun applyDarkSpinnerStyle(spinner: JSpinner) {
-        val editor = spinner.editor
+    // --- THEME AWARENESS ---
+    fun applyTheme() {
+        // Update Text Colors
+        headerLabel.foreground = UIStyles.textPrimary
+        sectionSchedule.foreground = UIStyles.textMuted
+        sectionDetails.foreground = UIStyles.textMuted
 
-        // Helper to style the inner text field
-        fun styleField(tf: JFormattedTextField) {
-            tf.background = UIStyles.inputBackground
-            tf.foreground = UIStyles.textPrimary
-            tf.caretColor = UIStyles.accentGreen
-            tf.border = BorderFactory.createEmptyBorder(2, 4, 2, 4)
+        val labels = listOf(lblTitle, lblDate, lblDur, lblVen, lblCap, lblDesc)
+        labels.forEach { it.foreground = UIStyles.textSecondary }
+
+        // Update Input Backgrounds
+        val inputs = listOf(titleField, searchField, maxParticipantsField)
+        inputs.forEach {
+            it.background = UIStyles.inputBackground
+            it.foreground = UIStyles.textPrimary
+            it.border = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UIStyles.tableBorder), EmptyBorder(8,10,8,10))
         }
 
-        if (editor is JSpinner.DefaultEditor) {
-            styleField(editor.textField)
-        } else if (editor is JSpinner.DateEditor) {
-            styleField(editor.textField)
+        descriptionArea.background = UIStyles.inputBackground
+        descriptionArea.foreground = UIStyles.textPrimary
+
+        venueCombo.background = UIStyles.inputBackground
+        venueCombo.foreground = UIStyles.textPrimary
+
+        // Spinners
+        val spinners = listOf(dateSpinner, timeSpinner, hoursSpinner, minutesSpinner)
+        spinners.forEach { s ->
+            s.background = UIStyles.inputBackground
+            s.border = BorderFactory.createLineBorder(UIStyles.tableBorder)
+            val editor = s.editor
+            val textField = when (editor) {
+                is JSpinner.DefaultEditor -> editor.textField
+                is JSpinner.DateEditor -> editor.textField
+                else -> null
+            }
+            textField?.background = UIStyles.inputBackground
+            textField?.foreground = UIStyles.textPrimary
         }
 
-        // Style the outer border
-        spinner.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(UIStyles.tableBorder, 1),
-            BorderFactory.createEmptyBorder(2, 2, 2, 2)
-        )
-        spinner.background = UIStyles.inputBackground
+        // Update Table
+        UIStyles.styleTable(eventTable)
+        // Re-assign renderer to ensure new theme colors are picked up
+        eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
+
+        // Repaint
+        this.revalidate()
+        this.repaint()
     }
 
+    // --- UI CREATION ---
     private fun createTableCard(): JPanel {
         val card = UIStyles.createCardPanel()
 
         val header = JPanel(BorderLayout())
         header.isOpaque = false
-        header.add(UIStyles.createSectionLabel("SCHEDULE"), BorderLayout.WEST)
+        header.add(sectionSchedule, BorderLayout.WEST)
 
         val tools = JPanel(FlowLayout(FlowLayout.RIGHT, 5, 0))
         tools.isOpaque = false
-        tools.add(searchField)
-        tools.add(editButton)
-        tools.add(deleteButton)
+        tools.add(searchField); tools.add(editButton); tools.add(deleteButton)
         header.add(tools, BorderLayout.EAST)
 
         card.add(header, BorderLayout.NORTH)
-
-        UIStyles.styleTable(eventTable)
-        eventTable.rowSorter = tableSorter
-        eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
-
         card.add(UIStyles.createScrollPane(eventTable), BorderLayout.CENTER)
         return card
     }
 
     private fun createFormCard(): JPanel {
         val card = UIStyles.createCardPanel()
-        card.add(UIStyles.createSectionLabel("EVENT DETAILS"), BorderLayout.NORTH)
+        card.add(sectionDetails, BorderLayout.NORTH)
 
         val form = JPanel(GridBagLayout())
         form.isOpaque = false
-        val gbc = GridBagConstraints().apply {
-            fill = GridBagConstraints.HORIZONTAL
-            insets = Insets(0, 0, 12, 0)
-            weightx = 1.0
-            gridx = 0
-        }
+        val gbc = GridBagConstraints().apply { fill = GridBagConstraints.HORIZONTAL; insets = Insets(0, 0, 12, 0); weightx = 1.0; gridx = 0 }
         var y = 0
 
-        fun addIn(label: String, comp: JComponent) {
-            gbc.gridy = y++
-            form.add(UIStyles.createLabel(label), gbc)
-            gbc.gridy = y++
-            form.add(comp, gbc)
+        fun addIn(label: JLabel, comp: JComponent) {
+            gbc.gridy = y++; form.add(label, gbc)
+            gbc.gridy = y++; form.add(comp, gbc)
         }
 
-        addIn("Event Title", titleField)
+        addIn(lblTitle, titleField)
 
-        // Split Date and Time Row
-        val dateTimePanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
-        dateTimePanel.isOpaque = false
-
-        // Date
+        val dtPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)); dtPanel.isOpaque = false
         dateSpinner.preferredSize = Dimension(130, 36)
-        dateTimePanel.add(dateSpinner)
-        dateTimePanel.add(Box.createHorizontalStrut(10))
-
-        // Time
         timeSpinner.preferredSize = Dimension(90, 36)
-        dateTimePanel.add(timeSpinner)
+        dtPanel.add(dateSpinner); dtPanel.add(Box.createHorizontalStrut(10)); dtPanel.add(timeSpinner)
+        addIn(lblDate, dtPanel)
 
-        addIn("Start Date & Time", dateTimePanel)
+        val dPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)); dPanel.isOpaque = false
+        hoursSpinner.preferredSize = Dimension(70, 36); minutesSpinner.preferredSize = Dimension(70, 36)
+        dPanel.add(hoursSpinner); dPanel.add(UIStyles.createLabel(" h ")); dPanel.add(minutesSpinner); dPanel.add(UIStyles.createLabel(" m"))
+        addIn(lblDur, dPanel)
 
-        // Duration Row
-        val durPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
-        durPanel.isOpaque = false
+        val vPanel = JPanel(BorderLayout(5, 0)); vPanel.isOpaque = false
+        vPanel.add(venueCombo, BorderLayout.CENTER); vPanel.add(findVenueBtn, BorderLayout.EAST)
+        addIn(lblVen, vPanel)
 
-        hoursSpinner.preferredSize = Dimension(70, 36)
-        minutesSpinner.preferredSize = Dimension(70, 36)
+        addIn(lblCap, maxParticipantsField)
+        addIn(lblDesc, UIStyles.createScrollPane(descriptionArea))
 
-        durPanel.add(hoursSpinner)
-        durPanel.add(UIStyles.createLabel(" h   "))
-        durPanel.add(minutesSpinner)
-        durPanel.add(UIStyles.createLabel(" m"))
-        addIn("Duration", durPanel)
+        gbc.gridy = y++; gbc.weighty = 1.0; form.add(JPanel().apply{isOpaque=false}, gbc)
 
-        // Venue Row
-        val venPanel = JPanel(BorderLayout(5, 0))
-        venPanel.isOpaque = false
-        venPanel.add(venueCombo, BorderLayout.CENTER)
-        venPanel.add(findVenueBtn, BorderLayout.EAST)
-        addIn("Venue", venPanel)
-
-        addIn("Max Capacity", maxParticipantsField)
-        addIn("Description", UIStyles.createScrollPane(descriptionArea))
-
-        gbc.gridy = y++
-        gbc.weighty = 1.0
-        form.add(JPanel().apply { isOpaque = false }, gbc)
-
-        val btnPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
-        btnPanel.isOpaque = false
-        btnPanel.add(clearButton)
-        btnPanel.add(saveButton)
-
-        gbc.gridy = y++
-        gbc.weighty = 0.0
-        form.add(btnPanel, gbc)
+        val bPanel = JPanel(FlowLayout(FlowLayout.RIGHT)); bPanel.isOpaque = false
+        bPanel.add(clearButton); bPanel.add(saveButton)
+        gbc.gridy = y++; gbc.weighty = 0.0; form.add(bPanel, gbc)
 
         card.add(form, BorderLayout.CENTER)
         return card
     }
 
-    // --- LOGIC & LISTENERS ---
+    // --- LOGIC ---
 
     private fun setupListeners() {
-        saveButton.addActionListener {
-            if (editingEventId == null) createEvent() else updateEvent()
-        }
+        saveButton.addActionListener { if (editingEventId == null) createEvent() else updateEvent() }
         clearButton.addActionListener { clearFields() }
         editButton.addActionListener { loadEventForEditing() }
         deleteButton.addActionListener { deleteSelectedEvent() }
         findVenueBtn.addActionListener { findAvailableVenue() }
-
         searchField.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) = filter()
             override fun removeUpdate(e: DocumentEvent?) = filter()
             override fun changedUpdate(e: DocumentEvent?) = filter()
             fun filter() {
                 val text = searchField.text
-                if (text.trim().isEmpty()) tableSorter.rowFilter = null
-                else tableSorter.rowFilter = RowFilter.regexFilter("(?i)$text")
+                if (text.trim().isEmpty()) tableSorter.rowFilter = null else tableSorter.rowFilter = RowFilter.regexFilter("(?i)$text")
             }
         })
     }
@@ -332,7 +297,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
             maxParticipants = maxParticipants
         )
 
-        // Keep participants
         oldEvent.getRegisteredParticipants().forEach { updatedEvent.registerParticipant(it) }
 
         val worker = object : SwingWorker<Boolean, Void>() {
@@ -350,31 +314,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         worker.execute()
     }
 
-    private fun loadEventForEditing() {
-        val row = eventTable.selectedRow
-        if (row == -1) return
-        val event = displayedEvents.getOrNull(eventTable.convertRowIndexToModel(row)) ?: return
-
-        editingEventId = event.id
-        saveButton.text = "Update Event"
-        titleField.text = event.title
-        descriptionArea.text = event.description
-        maxParticipantsField.text = event.maxParticipants.toString()
-
-        setCombinedDateTime(event.dateTime)
-
-        hoursSpinner.value = event.duration.toHours().toInt()
-        minutesSpinner.value = event.duration.toMinutesPart()
-
-        for (i in 0 until venueCombo.itemCount) {
-            val item = venueCombo.getItemAt(i) as VenueItem
-            if (item.venue.id == event.venue.id) {
-                venueCombo.selectedIndex = i
-                break
-            }
-        }
-    }
-
     private fun deleteSelectedEvent() {
         val row = eventTable.selectedRow
         if (row == -1) return
@@ -388,6 +327,30 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                 }
             }
             worker.execute()
+        }
+    }
+
+    private fun loadEventForEditing() {
+        val row = eventTable.selectedRow
+        if (row == -1) return
+        val event = displayedEvents.getOrNull(eventTable.convertRowIndexToModel(row)) ?: return
+
+        editingEventId = event.id
+        saveButton.text = "Update Event"
+        titleField.text = event.title
+        descriptionArea.text = event.description
+        maxParticipantsField.text = event.maxParticipants.toString()
+
+        setCombinedDateTime(event.dateTime)
+        hoursSpinner.value = event.duration.toHours().toInt()
+        minutesSpinner.value = event.duration.toMinutesPart()
+
+        for (i in 0 until venueCombo.itemCount) {
+            val item = venueCombo.getItemAt(i) as VenueItem
+            if (item.venue.id == event.venue.id) {
+                venueCombo.selectedIndex = i
+                break
+            }
         }
     }
 
@@ -457,8 +420,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         editingEventId = null
         saveButton.text = "Save Event"
         eventTable.clearSelection()
-
-        // Reset spinners
         val now = Date()
         dateSpinner.value = now
         timeSpinner.value = now
@@ -468,16 +429,17 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     private data class VenueItem(val venue: Venue) { override fun toString() = venue.name }
 
+    // --- FIXED RENDERER ---
     private class CapacityCellRenderer : DefaultTableCellRenderer() {
         private val progressBar = JProgressBar(0, 100)
         init {
             progressBar.isStringPainted = true
             progressBar.border = BorderFactory.createEmptyBorder(2, 2, 2, 2)
-            progressBar.background = UIStyles.cardBackground
-            progressBar.foreground = UIStyles.accentGreen // Bar Color
         }
         override fun getTableCellRendererComponent(table: JTable?, value: Any?, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int): Component {
-            if (isSelected) progressBar.background = UIStyles.tableSelection else progressBar.background = UIStyles.cardBackground
+            progressBar.background = UIStyles.cardBackground
+            if (isSelected) progressBar.background = UIStyles.tableSelection
+
             val strValue = value as? String ?: "0/0"
             try {
                 val parts = strValue.split("/")
@@ -486,12 +448,11 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                     progressBar.maximum = m; progressBar.value = c
                     progressBar.string = "$c / $m"
 
-                    // Bar Color Logic
+                    // Bar Color
                     progressBar.foreground = if(c >= m) UIStyles.accentRed else UIStyles.accentGreen
 
-                    // --- FORCE WHITE TEXT ---
-                    // This forces text to render cleanly on dark background
-                    progressBar.ui.installUI(progressBar)
+
+                    SwingUtilities.updateComponentTreeUI(progressBar)
                 }
             } catch(e:Exception){}
             return progressBar

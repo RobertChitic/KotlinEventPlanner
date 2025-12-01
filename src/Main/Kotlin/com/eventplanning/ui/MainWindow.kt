@@ -3,11 +3,12 @@ package com.eventplanning.ui
 import com.eventplanning.domain.EventManager
 import com.eventplanning.service.ScalaBridge
 import com.formdev.flatlaf.FlatDarkLaf
+import com.formdev.flatlaf.FlatLightLaf
+import com.formdev.flatlaf.FlatLaf
 import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.awt.geom.RoundRectangle2D
 import javax.swing.*
 import javax.swing.border.EmptyBorder
 
@@ -16,27 +17,32 @@ class MainWindow(private val eventManager: EventManager) {
     private val frame = JFrame("Event Planner")
     private val cardLayout = CardLayout()
     private val contentPanel = JPanel(cardLayout)
-    private val navGroup = ButtonGroup()
-    private val navButtons = mutableListOf<JToggleButton>()
 
-    // Load panels
+    // Panels
     private val statsPanel = StatisticsPanel(eventManager)
     private val venuePanel = VenuePanel(eventManager)
     private val eventPanel = EventPanel(eventManager)
     private val participantPanel = ParticipantPanel(eventManager)
     private val registrationPanel = RegistrationPanel(eventManager)
 
+    private val navButtons = mutableListOf<JToggleButton>()
+    private val navGroup = ButtonGroup()
+    private val sidebar = createSidebar()
+
     fun show() {
         setupFrame()
         setupLayout()
-        cardLayout.show(contentPanel, "Dashboard")
+
+        // Listen for theme changes
+        UIStyles.addThemeListener { applyTheme() }
+
+        // FIXED: Open "Events" by default instead of Analytics
+        cardLayout.show(contentPanel, "Events")
         frame.isVisible = true
     }
 
     private fun setupFrame() {
-        // Force Dark Theme
-        try { FlatDarkLaf.setup() } catch (e: Exception) {}
-
+        FlatDarkLaf.setup()
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.size = Dimension(1380, 850)
         frame.setLocationRelativeTo(null)
@@ -44,11 +50,9 @@ class MainWindow(private val eventManager: EventManager) {
 
     private fun setupLayout() {
         frame.layout = BorderLayout()
-
-        val sidebar = createSidebar()
-
         contentPanel.background = UIStyles.background
         contentPanel.border = EmptyBorder(30, 40, 30, 40)
+
         contentPanel.add(eventPanel, "Events")
         contentPanel.add(venuePanel, "Venues")
         contentPanel.add(participantPanel, "Participants")
@@ -59,25 +63,50 @@ class MainWindow(private val eventManager: EventManager) {
         frame.add(contentPanel, BorderLayout.CENTER)
     }
 
+    private fun applyTheme() {
+        // 1. Update the Library Theme (FlatLaf)
+        if (UIStyles.current.isDark) FlatDarkLaf.setup() else FlatLightLaf.setup()
+
+        // 2. Refresh the whole component tree
+        FlatLaf.updateUI()
+        SwingUtilities.updateComponentTreeUI(frame)
+
+        // 3. RE-APPLY Custom Colors
+        contentPanel.background = UIStyles.background
+        sidebar.repaint()
+
+        // 4. Update Navigation Button Colors
+        navButtons.forEach {
+            if (!it.isSelected) it.foreground = UIStyles.textSecondary
+            else it.foreground = Color.WHITE
+        }
+
+        // 5. Push Theme Down to Panels
+        eventPanel.applyTheme()
+        venuePanel.applyTheme()
+        participantPanel.applyTheme()
+        registrationPanel.applyTheme()
+        statsPanel.applyTheme()
+
+        frame.repaint()
+    }
+
     private fun createSidebar(): JPanel {
-        val sidebar = object : JPanel(BorderLayout()) {
+        val sidebarPanel = object : JPanel(BorderLayout()) {
             override fun paintComponent(g: Graphics) {
-                g.color = Color(12, 12, 12) // Darker than main bg
+                g.color = UIStyles.sidebarBackground
                 g.fillRect(0, 0, width, height)
             }
         }
-        sidebar.preferredSize = Dimension(260, 0)
-        sidebar.border = BorderFactory.createMatteBorder(0, 0, 0, 1, UIStyles.tableBorder)
+        sidebarPanel.preferredSize = Dimension(260, 0)
 
-        // Branding
         val topPanel = JPanel(FlowLayout(FlowLayout.LEFT, 25, 35))
         topPanel.isOpaque = false
         val brandLabel = JLabel("Event Planner")
         brandLabel.font = UIStyles.fontHeader
-        brandLabel.foreground = UIStyles.textPrimary
+        brandLabel.foreground = Color.WHITE
         topPanel.add(brandLabel)
 
-        // Navigation
         val navPanel = JPanel()
         navPanel.layout = BoxLayout(navPanel, BoxLayout.Y_AXIS)
         navPanel.isOpaque = false
@@ -85,7 +114,7 @@ class MainWindow(private val eventManager: EventManager) {
 
         val menuLabel = JLabel("MENU")
         menuLabel.font = UIStyles.fontSection
-        menuLabel.foreground = UIStyles.textMuted
+        menuLabel.foreground = Color(150, 150, 180)
         menuLabel.border = EmptyBorder(0, 10, 15, 0)
         navPanel.add(menuLabel)
 
@@ -101,45 +130,46 @@ class MainWindow(private val eventManager: EventManager) {
                     border = EmptyBorder(12, 20, 12, 20)
                     cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                     font = UIStyles.fontBold
-                    foreground = UIStyles.textSecondary
+                    foreground = if(default) Color.WHITE else UIStyles.textSecondary
                     maximumSize = Dimension(Int.MAX_VALUE, 50)
                     alignmentX = Component.LEFT_ALIGNMENT
-                    if (default) { isSelected = true; foreground = UIStyles.textPrimary }
+                    if (default) isSelected = true
                 }
                 override fun paintComponent(g: Graphics) {
                     val g2 = g as Graphics2D
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
                     if (isSelected) {
-                        g2.color = UIStyles.cardBackground
+                        g2.color = UIStyles.accentBlue
                         g2.fillRoundRect(0, 0, width, height, 10, 10)
-                        g2.color = UIStyles.accentGreen
-                        g2.fillRoundRect(0, 10, 4, height - 20, 4, 4)
-                        foreground = UIStyles.textPrimary
-                    } else if (model.isRollover) {
-                        g2.color = UIStyles.hoverOverlay
-                        g2.fillRoundRect(0, 0, width, height, 10, 10)
+                        foreground = Color.WHITE
+                    } else {
+                        foreground = Color(200, 200, 200)
+                        if (model.isRollover) {
+                            g2.color = Color(255, 255, 255, 20)
+                            g2.fillRoundRect(0, 0, width, height, 10, 10)
+                            foreground = Color.WHITE
+                        }
                     }
                     super.paintComponent(g)
                 }
             }
             btn.addActionListener { e ->
                 cardLayout.show(contentPanel, e.actionCommand)
-                if (e.actionCommand == "Dashboard") statsPanel.refreshStats()
+                if (e.actionCommand == "Analytics") statsPanel.refreshStats()
                 navButtons.forEach { it.repaint() }
             }
-            navGroup.add(btn)
             navButtons.add(btn)
+            navGroup.add(btn)
             navPanel.add(btn)
             navPanel.add(Box.createVerticalStrut(5))
         }
 
-        addNav("Events", "Events", true)
+        addNav("Events", "Events", true) // Default TRUE
         addNav("Venues", "Venues")
         addNav("Participants", "Participants")
         addNav("Registration", "Registration")
         addNav("Analytics", "Analytics")
 
-        // Actions
         val bottomPanel = JPanel()
         bottomPanel.layout = BoxLayout(bottomPanel, BoxLayout.Y_AXIS)
         bottomPanel.isOpaque = false
@@ -151,27 +181,28 @@ class MainWindow(private val eventManager: EventManager) {
             btn.alignmentX = Component.LEFT_ALIGNMENT
             btn.isContentAreaFilled = false
             btn.isBorderPainted = false
-            btn.foreground = UIStyles.textSecondary
+            btn.foreground = Color(200, 200, 200)
             btn.font = UIStyles.fontBody
             btn.border = EmptyBorder(8, 0, 8, 0)
             btn.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
             btn.addActionListener(action)
             btn.addMouseListener(object : MouseAdapter() {
-                override fun mouseEntered(e: MouseEvent) { btn.foreground = UIStyles.textPrimary }
-                override fun mouseExited(e: MouseEvent) { btn.foreground = UIStyles.textSecondary }
+                override fun mouseEntered(e: MouseEvent) { btn.foreground = Color.WHITE }
+                override fun mouseExited(e: MouseEvent) { btn.foreground = Color(200, 200, 200) }
             })
             bottomPanel.add(btn)
         }
 
         addAction("Generate Schedule") { generateSchedule() }
+        addAction("Toggle Theme") { UIStyles.toggleTheme() }
         addAction("Save Database") { saveAllData() }
         addAction("Exit Application") { exitApplication() }
 
-        sidebar.add(topPanel, BorderLayout.NORTH)
-        sidebar.add(navPanel, BorderLayout.CENTER)
-        sidebar.add(bottomPanel, BorderLayout.SOUTH)
+        sidebarPanel.add(topPanel, BorderLayout.NORTH)
+        sidebarPanel.add(navPanel, BorderLayout.CENTER)
+        sidebarPanel.add(bottomPanel, BorderLayout.SOUTH)
 
-        return sidebar
+        return sidebarPanel
     }
 
     // --- LOGIC ---
@@ -179,7 +210,7 @@ class MainWindow(private val eventManager: EventManager) {
         val worker = object : SwingWorker<Boolean, Void>() {
             override fun doInBackground(): Boolean = eventManager.saveAllData()
             override fun done() {
-                if (get()) JOptionPane.showMessageDialog(frame, "Saved successfully.", "System", JOptionPane.INFORMATION_MESSAGE)
+                if (get()) JOptionPane.showMessageDialog(frame, "Saved successfully.")
                 else JOptionPane.showMessageDialog(frame, "Save failed.", "Error", JOptionPane.ERROR_MESSAGE)
             }
         }
@@ -196,7 +227,7 @@ class MainWindow(private val eventManager: EventManager) {
     private fun generateSchedule() {
         val events = eventManager.getAllEvents()
         val venues = eventManager.getAllVenues()
-        if (events.isEmpty()) { JOptionPane.showMessageDialog(frame, "No events.", "Info", JOptionPane.INFORMATION_MESSAGE); return }
+        if (events.isEmpty()) { JOptionPane.showMessageDialog(frame, "No events."); return }
 
         val worker = object : SwingWorker<ScalaBridge.SchedulerResult, Void>() {
             override fun doInBackground() = ScalaBridge.generateSchedule(events, venues)
@@ -213,10 +244,7 @@ class MainWindow(private val eventManager: EventManager) {
                     appendLine("--------------------------------")
                     result.schedule.forEach { e -> appendLine("${e.eventTitle} @ ${e.venue} [${e.dateTime}]") }
                 }
-                val textArea = UIStyles.createTextArea(15, 40).apply {
-                    text = message
-                    isEditable = false
-                }
+                val textArea = UIStyles.createTextArea(15, 40).apply { text = message; isEditable = false }
                 JOptionPane.showMessageDialog(frame, UIStyles.createScrollPane(textArea), "Schedule", JOptionPane.PLAIN_MESSAGE)
             }
             is ScalaBridge.SchedulerResult.Error -> JOptionPane.showMessageDialog(frame, result.message, "Error", JOptionPane.ERROR_MESSAGE)

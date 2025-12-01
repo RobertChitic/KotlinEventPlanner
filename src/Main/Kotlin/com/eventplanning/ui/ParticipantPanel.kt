@@ -3,6 +3,7 @@ package com.eventplanning.ui
 import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Participant
 import javax.swing.*
+import javax.swing.border.EmptyBorder
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableRowSorter
 import java.awt.*
@@ -22,16 +23,22 @@ class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
     private val phoneField = UIStyles.createTextField()
     private val orgField = UIStyles.createTextField()
 
+    // Theme Tracking
+    private val formLabels = mutableListOf<JLabel>()
+    private val headerLabel = UIStyles.createHeaderLabel("Participants")
+    private val sectionList = UIStyles.createSectionLabel("DIRECTORY")
+    private val sectionAdd = UIStyles.createSectionLabel("REGISTER NEW")
+    private val searchLabel = UIStyles.createLabel("Search:")
+
     // Buttons
     private val addButton = UIStyles.createPrimaryButton("Add Person")
     private val deleteButton = UIStyles.createDangerButton("Delete")
 
     init {
         layout = BorderLayout(0, 20)
-        background = UIStyles.background
         isOpaque = false
 
-        add(UIStyles.createHeaderLabel("Participants"), BorderLayout.NORTH)
+        add(headerLabel, BorderLayout.NORTH)
 
         val content = JPanel(GridBagLayout()); content.isOpaque = false
         val gbc = GridBagConstraints().apply { fill = GridBagConstraints.BOTH; insets = Insets(0, 0, 0, 20) }
@@ -43,19 +50,43 @@ class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
         content.add(createFormCard(), gbc)
 
         add(content, BorderLayout.CENTER)
+
+        applyTheme()
         refreshTable()
         setupListeners()
+    }
+
+    fun applyTheme() {
+        headerLabel.foreground = UIStyles.textPrimary
+        sectionList.foreground = UIStyles.textMuted
+        sectionAdd.foreground = UIStyles.textMuted
+        searchLabel.foreground = UIStyles.textSecondary
+
+        formLabels.forEach { it.foreground = UIStyles.textSecondary }
+
+        val inputs = listOf(searchField, nameField, emailField, phoneField, orgField)
+        inputs.forEach {
+            it.background = UIStyles.inputBackground
+            it.foreground = UIStyles.textPrimary
+            it.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UIStyles.tableBorder),
+                EmptyBorder(8, 10, 8, 10)
+            )
+        }
+
+        UIStyles.styleTable(participantTable)
+        this.repaint()
     }
 
     private fun createTableCard(): JPanel {
         val card = UIStyles.createCardPanel()
 
         val top = JPanel(BorderLayout()); top.isOpaque = false
-        top.add(UIStyles.createSectionLabel("DIRECTORY"), BorderLayout.WEST)
+        top.add(sectionList, BorderLayout.WEST)
 
         // Search box in header
         val searchPanel = JPanel(FlowLayout(FlowLayout.RIGHT)); searchPanel.isOpaque = false
-        searchPanel.add(UIStyles.createLabel("Search:"))
+        searchPanel.add(searchLabel)
         searchPanel.add(searchField)
         top.add(searchPanel, BorderLayout.EAST)
         card.add(top, BorderLayout.NORTH)
@@ -73,15 +104,19 @@ class ParticipantPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun createFormCard(): JPanel {
         val card = UIStyles.createCardPanel()
-        card.add(UIStyles.createSectionLabel("REGISTER NEW"), BorderLayout.NORTH)
+        card.add(sectionAdd, BorderLayout.NORTH)
 
         val form = JPanel(GridBagLayout()); form.isOpaque = false
         val gbc = GridBagConstraints().apply { fill = GridBagConstraints.HORIZONTAL; insets = Insets(0, 0, 15, 0); weightx = 1.0; gridx = 0 }
         var y = 0
 
-        fun addIn(label: String, comp: JComponent) {
-            gbc.gridy = y++; form.add(UIStyles.createLabel(label), gbc)
-            gbc.gridy = y++; form.add(comp, gbc)
+        fun addIn(text: String, comp: JComponent) {
+            gbc.gridy = y++
+            val lbl = UIStyles.createLabel(text)
+            formLabels.add(lbl)
+            form.add(lbl, gbc)
+            gbc.gridy = y++
+            form.add(comp, gbc)
         }
 
         addIn("Full Name", nameField)

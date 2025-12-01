@@ -12,7 +12,6 @@ object SlotFinder {
   /**
    * Finds available venues searching forward from start time.
    * Returns a List of Maps containing: "venue", "start" (LocalDateTime), "end" (LocalDateTime).
-   * The "end" represents the "Free Until" time.
    */
   def findAvailableSlot(
                          venues: java.util.List[Venue],
@@ -22,18 +21,14 @@ object SlotFinder {
                          duration: Duration
                        ): java.util.List[java.util.Map[String, Any]] = {
 
-    // 1. Input Validation (Defensive Programming)
     if (requiredCapacity <= 0 || duration.isNegative || duration.isZero) {
       return new java.util.ArrayList[java.util.Map[String, Any]]()
     }
 
     val venueList = venues.asScala.toList
     val eventList = existingEvents.asScala.toList
-
-    // Filter by Capacity
     val capableVenues = venueList.filter(_.getCapacity >= requiredCapacity)
 
-    // Find slots recursively
     val validSlots = findSlotsForVenues(capableVenues, eventList, earliestStartDate, duration, Nil)
 
     // Sort: Earliest start time first
@@ -68,17 +63,13 @@ object SlotFinder {
     remainingVenues match {
       case Nil => acc
       case venue :: tail =>
-        // Recursive search for this specific venue
         findNextFreeSlot(venue, allEvents, requestedStart, duration, 0) match {
           case Some(foundStart) =>
-            // Found a slot! Now calculate "Free Until"
             val freeUntil = calculateFreeUntil(venue, allEvents, foundStart)
-
             val map = new java.util.HashMap[String, Any]()
             map.put("venue", venue)
             map.put("start", foundStart)
             map.put("end", freeUntil)
-
             findSlotsForVenues(tail, allEvents, requestedStart, duration, map :: acc)
 
           case None =>
@@ -89,7 +80,6 @@ object SlotFinder {
 
   /**
    * Recursively jumps forward until a valid slot is found or limit reached.
-   * UPDATED: Step size reduced to 15 minutes. Search limit increased to 672 steps (1 week).
    */
   @tailrec
   private def findNextFreeSlot(
@@ -99,40 +89,30 @@ object SlotFinder {
                                 duration: Duration,
                                 attempt: Int
                               ): Option[LocalDateTime] = {
-    // Cap search at 672 attempts (7 days * 24 hours * 4 steps/hour)
-    if (attempt > 672) return None
-
-    if (isVenueFree(venue, events, currentStart, duration)) {
+    // FIXED: Removed 'return' keyword. 'None' is the expression value.
+    if (attempt > 672) {
+      None
+    } else if (isVenueFree(venue, events, currentStart, duration)) {
       Some(currentStart)
     } else {
-      // Recursive Step: Try 15 minutes later to catch slots that might start on the quarter-hour
       findNextFreeSlot(venue, events, currentStart.plusMinutes(15), duration, attempt + 1)
     }
   }
 
-  /**
-   * Calculates when the next event starts to determine "Free Until".
-   * Caps at 24 hours from the start time for UI display purposes.
-   */
   private def calculateFreeUntil(venue: Venue, events: List[Event], startTime: LocalDateTime): LocalDateTime = {
     val nextEvent = events
-      .filter(e => e.getVenue.getId == venue.getId) // Events at this venue
-      .filter(e => e.getDateTime.isAfter(startTime)) // Starting after our slot
-      .sortBy(_.getDateTime) // Earliest first
-      .headOption // Get the first one
+      .filter(e => e.getVenue.getId == venue.getId)
+      .filter(e => e.getDateTime.isAfter(startTime))
+      .sortBy(_.getDateTime)
+      .headOption
 
     nextEvent match {
-      case Some(event) => event.getDateTime // Free until that event starts
-      case None => startTime.plusHours(24) // No future events? Cap at 24 hours for display.
+      case Some(event) => event.getDateTime
+      case None => startTime.plusHours(24)
     }
   }
 
-  private def isVenueFree(
-                           venue: Venue,
-                           events: List[Event],
-                           start: LocalDateTime,
-                           duration: Duration
-                         ): Boolean = {
+  private def isVenueFree(venue: Venue, events: List[Event], start: LocalDateTime, duration: Duration): Boolean = {
     val end = start.plus(duration)
     !events.exists { event =>
       event.getVenue.getId == venue.getId &&
