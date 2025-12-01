@@ -1,11 +1,18 @@
 package com.eventplanning.scheduling
 
-import _root_.com.eventplanning.domain.Event
-import _root_.com.eventplanning.domain.Venue
+import com.eventplanning.domain.Event
+import com.eventplanning.domain.Venue
 import java.time.LocalDateTime
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
+/**
+ * Handles conflict-free scheduling of multiple events.
+ * Strictly uses Functional Programming principles:
+ * - Immutability (Case classes, pure functions)
+ * - Tail Recursion (@tailrec)
+ * - Higher-Order Functions (filter, exists)
+ */
 object EventScheduler {
 
   case class ScheduledEvent(
@@ -30,8 +37,7 @@ object EventScheduler {
     if (eventList.isEmpty) return Success(List.empty)
     if (venueList.isEmpty) return Failure("No venues available to schedule events.", eventList)
 
-    // OPTIMIZATION: Sort events by duration (longest first) to solve hardest problems first
-    // This reduces the chance of getting stuck with a big event and no slots left.
+    // OPTIMIZATION: Sort events by duration (longest first)
     val sortedEvents = eventList.sortBy(_.getDuration).reverse
 
     scheduleEventsRecursive(sortedEvents, venueList, List.empty)
@@ -56,7 +62,7 @@ object EventScheduler {
             scheduleEventsRecursive(restEvents, availableVenues, scheduledSoFar :+ scheduled)
 
           case None =>
-            // Detailed error message for the user
+            // Pure functional error reporting
             Failure(
               s"Conflict: '${event.getTitle}' (Needs Cap: ${event.getMaxParticipants}) could not be booked.\n" +
                 "Check if venues are fully booked at ${event.getDateTime} or if capacity is too low.",
@@ -75,8 +81,8 @@ object EventScheduler {
     venues
       .filter(_.getCapacity >= event.getMaxParticipants) // 1. Filter by Capacity
       .filter(venue => !hasConflict(event, venue, existingSchedule)) // 2. Filter by Schedule Conflict
-      .sortBy(_.getCapacity) // 3. Best Fit Strategy: Use the smallest venue that fits the crowd
-      .headOption // Take the best match
+      .sortBy(_.getCapacity) // 3. Best Fit Strategy
+      .headOption
   }
 
   private def hasConflict(
@@ -102,10 +108,10 @@ object EventScheduler {
                            start2: LocalDateTime,
                            end2: LocalDateTime
                          ): Boolean = {
-    // (StartA < EndB) and (EndA > StartB)
     start1.isBefore(end2) && end1.isAfter(start2)
   }
 
+  // Helper for Java Interop (Reflection Bridge)
   def scheduleToMap(result: ScheduleResult): java.util.Map[String, Object] = {
     val map = new java.util.HashMap[String, Object]()
 
