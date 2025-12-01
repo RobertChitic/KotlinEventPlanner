@@ -62,12 +62,9 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
         formLabels.forEach { it.foreground = UIStyles.textSecondary }
 
-        // Combos
-        listOf(participantCombo, eventCombo).forEach {
-            it.background = UIStyles.inputBackground
-            it.foreground = UIStyles.textPrimary
-            it.border = BorderFactory.createLineBorder(UIStyles.tableBorder)
-        }
+        // FIXED: Use helper to deeply style ComboBoxes
+        UIStyles.styleComboBox(participantCombo)
+        UIStyles.styleComboBox(eventCombo)
 
         // List
         registeredList.apply {

@@ -21,7 +21,7 @@ object UIStyles {
         val tableBorder: Color,
         val tableSelection: Color,
 
-        // Accents (With Defaults)
+        // Accents
         val accentGreen: Color = Color(30, 215, 96),
         val accentBlue: Color = Color(65, 105, 225),
         val accentRed: Color = Color(225, 50, 50),
@@ -83,7 +83,6 @@ object UIStyles {
     val tableBorder get() = current.tableBorder
     val tableSelection get() = current.tableSelection
 
-    // Accents
     val accentGreen get() = current.accentGreen
     val accentBlue get() = current.accentBlue
     val accentRed get() = current.accentRed
@@ -92,10 +91,10 @@ object UIStyles {
     val accentPink get() = current.accentPink
 
     // === FONTS ===
-    val fontHeader = Font("Segoe UI", Font.BOLD, 26)
-    val fontSection = Font("Segoe UI", Font.BOLD, 12)
-    val fontBody = Font("Segoe UI", Font.PLAIN, 14)
-    val fontBold = Font("Segoe UI", Font.BOLD, 14)
+    val fontHeader = Font("Segue UI", Font.BOLD, 26)
+    val fontSection = Font("Segue UI", Font.BOLD, 12)
+    val fontBody = Font("Segue UI", Font.PLAIN, 14)
+    val fontBold = Font("Segue UI", Font.BOLD, 14)
 
     // === COMPONENT FACTORIES ===
 
@@ -150,13 +149,28 @@ object UIStyles {
     fun createComboBox(): JComboBox<Any> {
         val combo = JComboBox<Any>()
         combo.font = fontBody
-        combo.background = inputBackground
-        combo.foreground = textPrimary
-        combo.border = BorderFactory.createLineBorder(tableBorder, 1)
+        // Initial setup only; full styling handled by styleComboBox() in applyTheme
         return combo
     }
 
-    //Buttons
+    // Helper to force style ComboBoxes correctly
+    fun styleComboBox(combo: JComboBox<Any>) {
+        combo.background = inputBackground
+        combo.foreground = textPrimary
+        combo.border = BorderFactory.createLineBorder(tableBorder, 1)
+
+        // Often needed to force background color on some look and feels
+        val editor = combo.editor.editorComponent
+        if (editor is JComponent) {
+            editor.background = inputBackground
+            editor.foreground = textPrimary
+        }
+
+        // Force repaint
+        combo.repaint()
+    }
+
+    // Buttons
     fun createPrimaryButton(text: String): JButton = createStyledButton(text, accentGreen, Color.BLACK)
     fun createSecondaryButton(text: String): JButton = createStyledButton(text, Color(100, 100, 100), Color.WHITE)
     fun createDangerButton(text: String): JButton = createStyledButton(text, accentRed, Color.WHITE)

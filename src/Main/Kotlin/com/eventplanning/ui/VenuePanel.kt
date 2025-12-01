@@ -4,7 +4,10 @@ import com.eventplanning.domain.EventManager
 import com.eventplanning.domain.Venue
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
+import javax.swing.table.TableRowSorter
 import java.awt.*
 import java.util.UUID
 
@@ -16,7 +19,13 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
     ) { override fun isCellEditable(row: Int, column: Int) = false }
     private val venueTable = JTable(tableModel)
 
+    // FIXED: Added Sorter
+    private val tableSorter = TableRowSorter(tableModel)
+
     // Inputs
+    private val searchField = UIStyles.createTextField(15).apply {
+        putClientProperty("JTextField.placeholderText", "Search...")
+    }
     private val nameField = UIStyles.createTextField()
     private val capacityField = UIStyles.createTextField(10)
     private val locationField = UIStyles.createTextField()
@@ -67,7 +76,7 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
         formLabels.forEach { it.foreground = UIStyles.textSecondary }
 
         // Update Inputs
-        val inputs = listOf(nameField, capacityField, locationField, addressField, facilitiesField)
+        val inputs = listOf(nameField, capacityField, locationField, addressField, facilitiesField, searchField)
         inputs.forEach {
             it.background = UIStyles.inputBackground
             it.foreground = UIStyles.textPrimary
@@ -86,9 +95,21 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
 
     private fun createTableCard(): JPanel {
         val card = UIStyles.createCardPanel()
-        card.add(sectionList, BorderLayout.NORTH)
+
+        val header = JPanel(BorderLayout())
+        header.isOpaque = false
+        header.add(sectionList, BorderLayout.WEST)
+
+        // FIXED: Added Search Field to UI
+        val tools = JPanel(FlowLayout(FlowLayout.RIGHT, 5, 0))
+        tools.isOpaque = false
+        tools.add(searchField)
+        header.add(tools, BorderLayout.EAST)
+        card.add(header, BorderLayout.NORTH)
 
         UIStyles.styleTable(venueTable)
+        venueTable.rowSorter = tableSorter // FIXED: Assigned sorter
+
         card.add(UIStyles.createScrollPane(venueTable), BorderLayout.CENTER)
 
         val btnPanel = JPanel(FlowLayout(FlowLayout.RIGHT)); btnPanel.isOpaque = false
@@ -163,6 +184,17 @@ class VenuePanel(private val eventManager: EventManager) : JPanel() {
                 worker.execute()
             }
         }
+
+        // FIXED: Added Filter Listener
+        searchField.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent?) = filter()
+            override fun removeUpdate(e: DocumentEvent?) = filter()
+            override fun changedUpdate(e: DocumentEvent?) = filter()
+            fun filter() {
+                val text = searchField.text
+                if (text.trim().isEmpty()) tableSorter.rowFilter = null else tableSorter.rowFilter = RowFilter.regexFilter("(?i)$text")
+            }
+        })
     }
 
     private fun refreshVenueTable() {

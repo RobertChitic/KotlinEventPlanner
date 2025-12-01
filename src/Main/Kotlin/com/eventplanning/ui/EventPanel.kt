@@ -111,8 +111,8 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         descriptionArea.background = UIStyles.inputBackground
         descriptionArea.foreground = UIStyles.textPrimary
 
-        venueCombo.background = UIStyles.inputBackground
-        venueCombo.foreground = UIStyles.textPrimary
+        // FIXED: Apply deep styling to Venue ComboBox
+        UIStyles.styleComboBox(venueCombo)
 
         // Spinners
         val spinners = listOf(dateSpinner, timeSpinner, hoursSpinner, minutesSpinner)
@@ -131,7 +131,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
         // Update Table
         UIStyles.styleTable(eventTable)
-        // Re-assign renderer to ensure new theme colors are picked up
         eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
 
         // Repaint
@@ -153,6 +152,11 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         header.add(tools, BorderLayout.EAST)
 
         card.add(header, BorderLayout.NORTH)
+
+        UIStyles.styleTable(eventTable)
+        eventTable.rowSorter = tableSorter
+        eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
+
         card.add(UIStyles.createScrollPane(eventTable), BorderLayout.CENTER)
         return card
     }
@@ -429,7 +433,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
     private data class VenueItem(val venue: Venue) { override fun toString() = venue.name }
 
-    // --- FIXED RENDERER ---
     private class CapacityCellRenderer : DefaultTableCellRenderer() {
         private val progressBar = JProgressBar(0, 100)
         init {
@@ -447,11 +450,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                     val c = parts[0].trim().toInt(); val m = parts[1].trim().toInt()
                     progressBar.maximum = m; progressBar.value = c
                     progressBar.string = "$c / $m"
-
-                    // Bar Color
                     progressBar.foreground = if(c >= m) UIStyles.accentRed else UIStyles.accentGreen
-
-
                     SwingUtilities.updateComponentTreeUI(progressBar)
                 }
             } catch(e:Exception){}
