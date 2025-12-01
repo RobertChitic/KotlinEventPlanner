@@ -41,9 +41,9 @@ class EventPanel(
                 val modelRow = convertRowIndexToModel(row)
                 val event = displayedEvents.getOrNull(modelRow)
                 if (event != null && event.isFull()) {
-                    component.background = Color(255, 235, 235) // Light Red
+                    component.background = Color(255, 71, 77) // Light Red
                 } else {
-                    component.background = Color.WHITE
+                    component.background = null
                 }
             }
             return component
@@ -129,7 +129,7 @@ class EventPanel(
                     val percent = if (max > 0) (current.toDouble() / max * 100).toInt() else 0
                     progressBar.foreground = when {
                         percent >= 100 -> Color(220, 53, 69)
-                        percent >= 75 -> Color(255, 193, 7)
+                        percent >= 50 -> Color(255, 193, 7)
                         else -> Color(40, 167, 69)
                     }
                 }

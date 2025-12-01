@@ -62,7 +62,6 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
             BorderFactory.createLineBorder(Color.GRAY, 1),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         )
-        panel.background = Color.WHITE
 
         val titleLabel = JLabel(title)
         titleLabel.foreground = Color.DARK_GRAY
