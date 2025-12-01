@@ -2,81 +2,130 @@ package com.eventplanning.ui
 
 import com.eventplanning.domain.EventManager
 import javax.swing.*
+import javax.swing.border.EmptyBorder
 import java.awt.*
 
-/**
- * Dashboard to show system-wide statistics.
- * This adds "Analytical" functionality to the application.
- */
 class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
 
+    // --- MODERN COLORS ---
+    private val cardBackground = Color(35, 35, 35)     // Elevated Card
+    private val textPrimary = Color(255, 255, 255)     // White
+    private val textSecondary = Color(179, 179, 179)   // Gray
+
+    // Accents for Card Headers
+    private val accentGreen = Color(30, 215, 96)
+    private val accentBlue = Color(65, 105, 225)
+    private val accentOrange = Color(255, 165, 0)
+    private val accentPurple = Color(138, 43, 226)
+    private val accentPink = Color(255, 105, 180)
+
+    // Labels
     private val totalEventsLabel = createStatLabel()
     private val totalParticipantsLabel = createStatLabel()
     private val totalVenuesLabel = createStatLabel()
     private val busyVenueLabel = createStatLabel()
     private val avgOccupancyLabel = createStatLabel()
 
-    private val refreshButton = JButton(" Refresh")
-
     init {
-        layout = BorderLayout(20, 20)
-        border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        layout = BorderLayout(0, 30)
+        isOpaque = false // Let the dark window background show through
 
-        // Header
-        val headerLabel = JLabel("Event Analytics", SwingConstants.CENTER)
-        headerLabel.font = Font("SansSerif", Font.BOLD, 24)
-        add(headerLabel, BorderLayout.NORTH)
+        // 1. Header
+        val headerPanel = JPanel(BorderLayout())
+        headerPanel.isOpaque = false
 
-        // Grid for Stats
-        val statsPanel = JPanel(GridLayout(2, 3, 15, 15)) // 2 rows, 3 columns
+        val headerLabel = JLabel("Dashboard Overview")
+        headerLabel.font = Font("Segoe UI", Font.BOLD, 28)
+        headerLabel.foreground = textPrimary
+        headerPanel.add(headerLabel, BorderLayout.WEST)
 
-        statsPanel.add(createCard("Total Events", totalEventsLabel))
-        statsPanel.add(createCard("Total Participants", totalParticipantsLabel))
-        statsPanel.add(createCard("Total Venues", totalVenuesLabel))
-        statsPanel.add(createCard("Busiest Venue", busyVenueLabel))
-        statsPanel.add(createCard("Avg. Occupancy", avgOccupancyLabel))
+        val refreshBtn = JButton("Refresh Data")
+        refreshBtn.font = Font("Segoe UI", Font.PLAIN, 14)
+        refreshBtn.background = cardBackground
+        refreshBtn.foreground = textPrimary
+        refreshBtn.isFocusPainted = false
+        refreshBtn.addActionListener { refreshStats() }
+        headerPanel.add(refreshBtn, BorderLayout.EAST)
 
-        // Add an empty panel for the 6th slot to keep layout clean
-        val logoPanel = JPanel(BorderLayout())
-        val hintLabel = JLabel("Event Planner", SwingConstants.CENTER)
-        hintLabel.foreground = Color.GRAY
-        logoPanel.add(hintLabel, BorderLayout.CENTER)
-        logoPanel.border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-        statsPanel.add(logoPanel)
+        add(headerPanel, BorderLayout.NORTH)
 
-        add(statsPanel, BorderLayout.CENTER)
+        // 2. Grid of Cards
+        val gridPanel = JPanel(GridLayout(2, 3, 25, 25)) // Generous gap between cards
+        gridPanel.isOpaque = false
 
-        // Refresh Button at bottom
-        refreshButton.addActionListener { refreshStats() }
-        refreshButton.font = Font("SansSerif", Font.BOLD, 14)
-        val btnPanel = JPanel(); btnPanel.add(refreshButton)
-        add(btnPanel, BorderLayout.SOUTH)
+        // Add Cards with distinct colored top bars (No Emojis)
+        gridPanel.add(createCard("Total Events", totalEventsLabel, accentBlue))
+        gridPanel.add(createCard("Participants", totalParticipantsLabel, accentGreen))
+        gridPanel.add(createCard("Total Venues", totalVenuesLabel, accentOrange))
+        gridPanel.add(createCard("Busiest Venue", busyVenueLabel, accentPink))
+        gridPanel.add(createCard("Avg. Occupancy", avgOccupancyLabel, accentPurple))
 
-        // Initial Load
+        // Brand Card (Bottom Right)
+        gridPanel.add(createBrandCard())
+
+        add(gridPanel, BorderLayout.CENTER)
+
         refreshStats()
     }
 
-    private fun createCard(title: String, valueLabel: JLabel): JPanel {
-        val panel = JPanel(BorderLayout())
-        panel.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.GRAY, 1),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        )
+    /**
+     * Creates a dark card with a colored accent bar at the top.
+     */
+    private fun createCard(title: String, valueLabel: JLabel, accentColor: Color): JPanel {
+        return object : JPanel(BorderLayout(0, 15)) {
+            override fun paintComponent(g: Graphics) {
+                val g2 = g as Graphics2D
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
-        val titleLabel = JLabel(title)
-        titleLabel.font = Font("SansSerif", Font.PLAIN, 14)
+                // 1. Card Background
+                g2.color = cardBackground
+                g2.fillRoundRect(0, 0, width, height, 20, 20)
 
-        panel.add(titleLabel, BorderLayout.NORTH)
-        panel.add(valueLabel, BorderLayout.CENTER)
+                // 2. Colored Accent Bar (Top)
+                g2.color = accentColor
+                g2.fillRoundRect(20, 0, 60, 6, 4, 4) // Small pill at the top edge
+            }
+        }.apply {
+            isOpaque = false
+            border = EmptyBorder(30, 30, 30, 30) // Internal padding
 
-        return panel
+            // Title
+            val lblTitle = JLabel(title)
+            lblTitle.font = Font("Segoe UI", Font.PLAIN, 14)
+            lblTitle.foreground = textSecondary
+            add(lblTitle, BorderLayout.NORTH)
+
+            // Value (The big number)
+            valueLabel.horizontalAlignment = SwingConstants.LEFT
+            add(valueLabel, BorderLayout.CENTER)
+        }
+    }
+
+    /**
+     * Simple filler card with branding
+     */
+    private fun createBrandCard(): JPanel {
+        return object : JPanel(GridBagLayout()) {
+            override fun paintComponent(g: Graphics) {
+                val g2 = g as Graphics2D
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                g2.color = cardBackground
+                g2.fillRoundRect(0, 0, width, height, 20, 20)
+            }
+        }.apply {
+            isOpaque = false
+            val lbl = JLabel("Event Planner Pro")
+            lbl.font = Font("Segoe UI", Font.BOLD, 18)
+            lbl.foreground = Color(100, 100, 100) // Dark text on dark card = subtle watermark
+            add(lbl)
+        }
     }
 
     private fun createStatLabel(): JLabel {
-        val lbl = JLabel("...", SwingConstants.CENTER)
-        lbl.font = Font("SansSerif", Font.BOLD, 28)
-        lbl.foreground = Color(0, 102, 204)
-        return lbl
+        return JLabel("...").apply {
+            font = Font("Segoe UI", Font.BOLD, 36) // Big numbers
+            foreground = textPrimary
+        }
     }
 
     fun refreshStats() {
@@ -84,34 +133,42 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
         val participants = eventManager.getAllParticipants()
         val venues = eventManager.getAllVenues()
 
-        // 1. Basic Counts
         totalEventsLabel.text = events.size.toString()
         totalParticipantsLabel.text = participants.size.toString()
         totalVenuesLabel.text = venues.size.toString()
 
-        // 2. Busiest Venue (Venue with most events)
+        // Busiest Venue Logic
         if (events.isNotEmpty()) {
             val venuesMap = events.groupingBy { it.venue.name }.eachCount()
             val maxEntry = venuesMap.maxByOrNull { it.value }
-            busyVenueLabel.text = if (maxEntry != null) {
-                "<html><div style='text-align: center'>${maxEntry.key}<br/><span style='font-size:12px'>(${maxEntry.value} events)</span></div></html>"
-            } else "N/A"
+
+            if (maxEntry != null) {
+                busyVenueLabel.text = maxEntry.key
+                // Dynamically resize font if name is long
+                if (maxEntry.key.length > 12) {
+                    busyVenueLabel.font = Font("Segoe UI", Font.BOLD, 22)
+                } else {
+                    busyVenueLabel.font = Font("Segoe UI", Font.BOLD, 36)
+                }
+            } else {
+                busyVenueLabel.text = "N/A"
+            }
         } else {
             busyVenueLabel.text = "N/A"
         }
 
-        // 3. Average Occupancy
+        // Occupancy Logic
         if (events.isNotEmpty()) {
             val totalCap = events.sumOf { it.maxParticipants }
             val totalReg = events.sumOf { it.getCurrentCapacity() }
             val percent = if (totalCap > 0) (totalReg.toDouble() / totalCap * 100).toInt() else 0
             avgOccupancyLabel.text = "$percent%"
 
-            // Color code it
+            // Color code the text based on health
             avgOccupancyLabel.foreground = when {
-                percent > 80 -> Color(0, 153, 51) // Green (High usage is good?)
-                percent < 20 -> Color(204, 0, 0)  // Red (Low usage)
-                else -> Color(0, 102, 204)
+                percent > 80 -> accentGreen // Healthy
+                percent < 20 -> accentOrange // Needs attention
+                else -> textPrimary
             }
         } else {
             avgOccupancyLabel.text = "0%"
