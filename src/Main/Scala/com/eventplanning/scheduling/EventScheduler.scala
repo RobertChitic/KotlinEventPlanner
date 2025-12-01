@@ -7,16 +7,6 @@ import java.time.LocalTime
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
-/**
- * Handles conflict-free scheduling of multiple events.
- * Strictly uses Functional Programming principles:
- * - Immutability (Case classes, pure functions)
- * - Tail Recursion (@tailrec)
- * - Higher-Order Functions (filter, exists)
- *
- * UPDATE: Now implements TRUE scheduling. If a slot is taken, it searches
- * forward for the next available time slot rather than failing immediately.
- */
 object EventScheduler {
 
   case class ScheduledEvent(

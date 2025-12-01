@@ -33,12 +33,17 @@ class MainWindow(private val eventManager: EventManager) {
         setupFrame()
         setupLayout()
 
-        // Listen for theme changes
+        // Listen for future theme changes
         UIStyles.addThemeListener { applyTheme() }
 
-        // FIXED: Open "Events" by default instead of Analytics
         cardLayout.show(contentPanel, "Events")
         frame.isVisible = true
+
+        // FIXED: Apply theme AFTER window is visible.
+        // This ensures FlatLaf is fully active before we force ComboBox rendering styles.
+        SwingUtilities.invokeLater {
+            applyTheme()
+        }
     }
 
     private fun setupFrame() {

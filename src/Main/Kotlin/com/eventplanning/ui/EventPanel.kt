@@ -111,7 +111,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         descriptionArea.background = UIStyles.inputBackground
         descriptionArea.foreground = UIStyles.textPrimary
 
-        // FIXED: Apply deep styling to Venue ComboBox
+        // FIXED: Apply deep styling with renderer
         UIStyles.styleComboBox(venueCombo)
 
         // Spinners

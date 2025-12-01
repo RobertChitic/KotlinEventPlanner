@@ -91,10 +91,10 @@ object UIStyles {
     val accentPink get() = current.accentPink
 
     // === FONTS ===
-    val fontHeader = Font("Segue UI", Font.BOLD, 26)
-    val fontSection = Font("Segue UI", Font.BOLD, 12)
-    val fontBody = Font("Segue UI", Font.PLAIN, 14)
-    val fontBold = Font("Segue UI", Font.BOLD, 14)
+    val fontHeader = Font("Segoe UI", Font.BOLD, 26)
+    val fontSection = Font("Segoe UI", Font.BOLD, 12)
+    val fontBody = Font("Segoe UI", Font.PLAIN, 14)
+    val fontBold = Font("Segoe UI", Font.BOLD, 14)
 
     // === COMPONENT FACTORIES ===
 
@@ -146,27 +146,53 @@ object UIStyles {
         }
     }
 
+    // FIXED: Removed the call to styleComboBox() here.
+    // We only set basic properties. Full styling happens in applyTheme() when L&F is ready.
     fun createComboBox(): JComboBox<Any> {
         val combo = JComboBox<Any>()
         combo.font = fontBody
-        // Initial setup only; full styling handled by styleComboBox() in applyTheme
+        combo.background = inputBackground
+        combo.foreground = textPrimary
         return combo
     }
 
-    // Helper to force style ComboBoxes correctly
-    fun styleComboBox(combo: JComboBox<Any>) {
+    // FIXED: Deep styling with Custom Renderer to fix white dropdowns
+    fun styleComboBox(combo: JComboBox<*>) {
+        // 1. Style Main Component
         combo.background = inputBackground
         combo.foreground = textPrimary
-        combo.border = BorderFactory.createLineBorder(tableBorder, 1)
+        combo.border = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(tableBorder, 1),
+            EmptyBorder(4, 8, 4, 8)
+        )
 
-        // Often needed to force background color on some look and feels
+        // 2. Custom Renderer for Dropdown Items
+        combo.setRenderer(object : DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                list: JList<*>?,
+                value: Any?,
+                index: Int,
+                isSelected: Boolean,
+                cellHasFocus: Boolean
+            ): Component {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+
+                // Dynamic Item Colors
+                background = if (isSelected) tableSelection else inputBackground
+                foreground = textPrimary
+
+                border = EmptyBorder(5, 10, 5, 10)
+                return this
+            }
+        })
+
+        // 3. Ensure editor background updates
         val editor = combo.editor.editorComponent
         if (editor is JComponent) {
             editor.background = inputBackground
             editor.foreground = textPrimary
         }
 
-        // Force repaint
         combo.repaint()
     }
 

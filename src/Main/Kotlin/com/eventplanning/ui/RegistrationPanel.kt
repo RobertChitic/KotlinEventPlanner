@@ -62,7 +62,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
         formLabels.forEach { it.foreground = UIStyles.textSecondary }
 
-        // FIXED: Use helper to deeply style ComboBoxes
+        // FIXED: Apply deep styling with custom renderer
         UIStyles.styleComboBox(participantCombo)
         UIStyles.styleComboBox(eventCombo)
 
@@ -207,6 +207,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
             appendLine("Occupancy: ${event.getCurrentCapacity()} / ${event.maxParticipants}")
             appendLine("Spots:     ${event.getAvailableSpots()}")
             if (event.description.isNotBlank()) {
+                // FIXED: Truncated line fixed
                 appendLine(); appendLine("📝 DESCRIPTION"); appendLine("────────────────────────────────"); appendLine(event.description)
             }
         }
