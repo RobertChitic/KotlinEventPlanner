@@ -16,14 +16,14 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
     private val busyVenueLabel = createStatLabel()
     private val avgOccupancyLabel = createStatLabel()
 
-    private val refreshButton = JButton(" Refresh Statistics")
+    private val refreshButton = JButton(" Refresh")
 
     init {
         layout = BorderLayout(20, 20)
         border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
 
         // Header
-        val headerLabel = JLabel("System Dashboard", SwingConstants.CENTER)
+        val headerLabel = JLabel("Event Analytics", SwingConstants.CENTER)
         headerLabel.font = Font("SansSerif", Font.BOLD, 24)
         add(headerLabel, BorderLayout.NORTH)
 
@@ -38,7 +38,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
 
         // Add an empty panel for the 6th slot to keep layout clean
         val logoPanel = JPanel(BorderLayout())
-        val hintLabel = JLabel("Event Planner v1.0", SwingConstants.CENTER)
+        val hintLabel = JLabel("Event Planner", SwingConstants.CENTER)
         hintLabel.foreground = Color.GRAY
         logoPanel.add(hintLabel, BorderLayout.CENTER)
         logoPanel.border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
@@ -64,7 +64,6 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
         )
 
         val titleLabel = JLabel(title)
-        titleLabel.foreground = Color.DARK_GRAY
         titleLabel.font = Font("SansSerif", Font.PLAIN, 14)
 
         panel.add(titleLabel, BorderLayout.NORTH)
@@ -76,7 +75,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
     private fun createStatLabel(): JLabel {
         val lbl = JLabel("...", SwingConstants.CENTER)
         lbl.font = Font("SansSerif", Font.BOLD, 28)
-        lbl.foreground = Color(0, 102, 204) // Nice Blue
+        lbl.foreground = Color(0, 102, 204)
         return lbl
     }
 

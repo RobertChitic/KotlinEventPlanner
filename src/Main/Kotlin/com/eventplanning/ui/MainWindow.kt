@@ -84,7 +84,7 @@ class MainWindow(private val eventManager: EventManager) {
         tabbedPane.addTab("Venues", VenuePanel(eventManager))
         tabbedPane.addTab("Participants", ParticipantPanel(eventManager))
         tabbedPane.addTab("Registration", RegistrationPanel(eventManager))
-        tabbedPane.addTab("Dashboard", statsPanel)
+        tabbedPane.addTab("Analytics", statsPanel)
     }
 
     private fun refreshAllPanels() {
