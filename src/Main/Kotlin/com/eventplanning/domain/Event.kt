@@ -97,13 +97,22 @@ data class Event(
      * Checks if this event conflicts with another event (same venue, overlapping time).
      */
     fun conflictsWith(other: Event): Boolean {
+        // 1. Identity Check: An event does not conflict with itself
+        if (this.id == other.id) {
+            return false
+        }
+
+        // 2. Venue Check: Different venues cannot conflict
         if (this.venue.id != other.venue.id) {
             return false
         }
 
+        // 3. Time Overlap Calculation
         val thisEnd = this.getEndTime()
         val otherEnd = other.getEndTime()
 
+        // Logic: (StartA < EndB) and (EndA > StartB)
+        // This allows back-to-back events (e.g. A ends 10:00, B starts 10:00)
         return this.dateTime < otherEnd && thisEnd > other.dateTime
     }
 
