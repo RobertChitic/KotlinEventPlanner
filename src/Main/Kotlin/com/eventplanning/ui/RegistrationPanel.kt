@@ -195,21 +195,19 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         val minutes = event.duration.toMinutes() % 60
         val durationStr = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
         eventDetailsArea.text = buildString {
-            appendLine("📅 SUMMARY"); appendLine("────────────────────────────────")
+            appendLine("SUMMARY"); appendLine("────────────────────────────────")
             appendLine("Title:     ${event.title}")
             appendLine("Date:      ${event.dateTime.format(formatter)}")
             appendLine("Venue:     ${event.venue.name}")
             appendLine("Location:  ${event.venue.address}")
             appendLine("Duration:  $durationStr")
+            appendLine("Description:  ${if (event.description.isNotBlank()) "Yes" else "No"}")
+            appendLine(); appendLine("DESCRIPTION"); appendLine("────────────────────────────────"); appendLine(event.description)
             appendLine()
-            appendLine("📊 STATISTICS"); appendLine("────────────────────────────────")
+            appendLine("STATISTICS"); appendLine("────────────────────────────────")
             appendLine("Status:    ${if (event.isFull()) "FULL" else "Open"}")
             appendLine("Occupancy: ${event.getCurrentCapacity()} / ${event.maxParticipants}")
             appendLine("Spots:     ${event.getAvailableSpots()}")
-            if (event.description.isNotBlank()) {
-                // FIXED: Truncated line fixed
-                appendLine(); appendLine("📝 DESCRIPTION"); appendLine("────────────────────────────────"); appendLine(event.description)
-            }
         }
         eventDetailsArea.caretPosition = 0
     }
@@ -221,7 +219,7 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         eventCombo.removeAllItems()
         eventManager.getAllEvents().forEach { eventCombo.addItem(EventItem(it)) }
         if (selectedEvent != null) {
-            for (i in 0 until eventCombo.itemCount) {
+            for (i in 0..<eventCombo.itemCount) {
                 val item = eventCombo.getItemAt(i) as? EventItem
                 if (item != null && item.event.id == selectedEvent.id) { eventCombo.selectedIndex = i; break }
             }

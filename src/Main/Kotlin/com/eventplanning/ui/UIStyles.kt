@@ -31,7 +31,7 @@ object UIStyles {
     )
 
     // === PRESETS ===
-    val DarkTheme = Theme(
+    private val DarkTheme = Theme(
         isDark = true,
         background = Color(18, 18, 18),
         cardBackground = Color(33, 33, 33),
@@ -44,7 +44,7 @@ object UIStyles {
         tableSelection = Color(50, 50, 50)
     )
 
-    val LightTheme = Theme(
+    private val LightTheme = Theme(
         isDark = false,
         background = Color(240, 242, 245),
         cardBackground = Color(255, 255, 255),
@@ -91,10 +91,10 @@ object UIStyles {
     val accentPink get() = current.accentPink
 
     // === FONTS ===
-    val fontHeader = Font("Segoe UI", Font.BOLD, 26)
-    val fontSection = Font("Segoe UI", Font.BOLD, 12)
-    val fontBody = Font("Segoe UI", Font.PLAIN, 14)
-    val fontBold = Font("Segoe UI", Font.BOLD, 14)
+    val fontHeader = Font("Segue UI", Font.BOLD, 26)
+    val fontSection = Font("Segue UI", Font.BOLD, 12)
+    val fontBody = Font("Segue UI", Font.PLAIN, 14)
+    val fontBold = Font("Segue UI", Font.BOLD, 14)
 
     // === COMPONENT FACTORIES ===
 

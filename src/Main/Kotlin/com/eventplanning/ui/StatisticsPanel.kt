@@ -30,7 +30,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
         headerPanel.isOpaque = false
         headerPanel.add(headerLabel, BorderLayout.WEST)
 
-        refreshBtn.font = Font("Segoe UI", Font.PLAIN, 14)
+        refreshBtn.font = Font("Segue UI", Font.PLAIN, 14)
         refreshBtn.isFocusPainted = false
         refreshBtn.addActionListener { refreshStats() }
         headerPanel.add(refreshBtn, BorderLayout.EAST)
@@ -95,7 +95,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
         card.border = EmptyBorder(30, 30, 30, 30)
 
         val lblTitle = JLabel(title)
-        lblTitle.font = Font("Segoe UI", Font.PLAIN, 14)
+        lblTitle.font = Font("Segue UI", Font.PLAIN, 14)
         cardTitles.add(lblTitle) // Track for theming
 
         card.add(lblTitle, BorderLayout.NORTH)
@@ -116,7 +116,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
         }.apply {
             isOpaque = false
             val lbl = JLabel("Event Planner Pro")
-            lbl.font = Font("Segoe UI", Font.BOLD, 18)
+            lbl.font = Font("Segue UI", Font.BOLD, 18)
             lbl.foreground = Color(100, 100, 100)
             add(lbl)
         }
@@ -124,7 +124,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
 
     private fun createStatLabel(): JLabel {
         return JLabel("...").apply {
-            font = Font("Segoe UI", Font.BOLD, 36)
+            font = Font("Segue UI", Font.BOLD, 36)
             // Initial foreground set in applyTheme/refreshStats
         }
     }
@@ -142,7 +142,7 @@ class StatisticsPanel(private val eventManager: EventManager) : JPanel() {
             val venuesMap = events.groupingBy { it.venue.name }.eachCount()
             val maxEntry = venuesMap.maxByOrNull { it.value }
             busyVenueLabel.text = maxEntry?.key ?: "N/A"
-            busyVenueLabel.font = if ((maxEntry?.key?.length ?: 0) > 12) Font("Segoe UI", Font.BOLD, 22) else Font("Segoe UI", Font.BOLD, 36)
+            busyVenueLabel.font = if ((maxEntry?.key?.length ?: 0) > 12) Font("Segue UI", Font.BOLD, 22) else Font("Segue UI", Font.BOLD, 36)
         } else {
             busyVenueLabel.text = "N/A"
         }

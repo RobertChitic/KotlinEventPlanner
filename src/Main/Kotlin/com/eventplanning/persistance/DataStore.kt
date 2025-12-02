@@ -171,7 +171,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                             capacity = rs.getInt("capacity"),
                             location = rs.getString("location"),
                             address = rs.getString("address"),
-                            // Fix 2: Trim strings to prevent " Wifi" bug
+                            // Fix 2: Trim strings to prevent "Wifi" bug
                             facilities = rs.getString("facilities")
                                 ?.split(",")
                                 ?.map { it.trim() }
@@ -320,7 +320,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
         val conn = connection ?: return emptyList()
         val events = mutableListOf<Event>()
 
-        // Pre-load all registrations into memory for efficiency
+        //Pre-load all registrations into memory for efficiency
         val registrationMap = HashMap<String, MutableList<String>>()
         try {
             conn.createStatement().use { stmt ->

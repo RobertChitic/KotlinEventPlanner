@@ -4,6 +4,7 @@ import com.eventplanning.domain.Event
 import com.eventplanning.domain.Venue
 import java.time.LocalDateTime
 import java.time.Duration
+import java.util.ArrayList
 
 object ScalaBridge {
 
@@ -59,7 +60,7 @@ object ScalaBridge {
 
             @Suppress("UNCHECKED_CAST")
             val rawResult = method.invoke(null, venues, events, requiredCapacity, dateTime, duration)
-                    as java.util.List<java.util.Map<String, Any>>
+                    as List<Map<String, Any>>
 
             // Parse the generic map from Scala into clean Kotlin objects
             val slots = rawResult.map { map ->
@@ -100,7 +101,7 @@ object ScalaBridge {
     private fun parseSchedulerResult(resultMap: Map<String, Any>): SchedulerResult {
         val success = resultMap["success"] as? Boolean ?: false
         return if (success) {
-            val scheduleList = resultMap["schedule"] as? java.util.ArrayList<java.util.Map<String, Any>>
+            val scheduleList = resultMap["schedule"] as? ArrayList<Map<String, Any>>
                 ?: return SchedulerResult.Error("Invalid schedule format", 0)
             val entries = scheduleList.map { entry ->
                 ScheduleEntry(

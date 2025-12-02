@@ -9,19 +9,19 @@ import scala.jdk.CollectionConverters._
 
 object EventScheduler {
 
-  case class ScheduledEvent(
+  private case class ScheduledEvent(
                              event: Event,
                              assignedVenue: Venue,
                              assignedDateTime: LocalDateTime
                            )
 
   sealed trait ScheduleResult
-  case class Success(schedule: List[ScheduledEvent]) extends ScheduleResult
-  case class Failure(message: String, problematicEvents: List[Event]) extends ScheduleResult
+  private case class Success(schedule: List[ScheduledEvent]) extends ScheduleResult
+  private case class Failure(message: String, problematicEvents: List[Event]) extends ScheduleResult
 
   // Configurable constraints for the auto-scheduler
-  val WORK_DAY_START = LocalTime.of(8, 0)
-  val WORK_DAY_END = LocalTime.of(20, 0)
+  private val WORK_DAY_START = LocalTime.of(8, 0)
+  private val WORK_DAY_END = LocalTime.of(20, 0)
 
   def scheduleEvents(
                       events: java.util.List[Event],

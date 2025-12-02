@@ -9,11 +9,7 @@ import scala.jdk.CollectionConverters._
 
 object SlotFinder {
 
-  /**
-   * Finds available venues searching forward from start time.
-   * Returns a List of Maps containing: "venue", "start" (LocalDateTime), "end" (LocalDateTime).
-   */
-  def findAvailableSlot(
+  private def findAvailableSlot(
                          venues: java.util.List[Venue],
                          existingEvents: java.util.List[Event],
                          requiredCapacity: Int,

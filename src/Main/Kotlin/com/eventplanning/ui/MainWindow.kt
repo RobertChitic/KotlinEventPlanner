@@ -11,6 +11,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import kotlin.system.exitProcess
 
 class MainWindow(private val eventManager: EventManager) {
 
@@ -226,7 +227,7 @@ class MainWindow(private val eventManager: EventManager) {
         if (JOptionPane.showConfirmDialog(frame, "Save before exiting?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             eventManager.saveAllData()
         }
-        System.exit(0)
+        exitProcess(0)
     }
 
     private fun generateSchedule() {

@@ -119,8 +119,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         spinners.forEach { s ->
             s.background = UIStyles.inputBackground
             s.border = BorderFactory.createLineBorder(UIStyles.tableBorder)
-            val editor = s.editor
-            val textField = when (editor) {
+            val textField = when (val editor = s.editor) {
                 is JSpinner.DefaultEditor -> editor.textField
                 is JSpinner.DateEditor -> editor.textField
                 else -> null
@@ -453,7 +452,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
                     progressBar.foreground = if(c >= m) UIStyles.accentRed else UIStyles.accentGreen
                     SwingUtilities.updateComponentTreeUI(progressBar)
                 }
-            } catch(e:Exception){}
+            } catch(_:Exception){}
             return progressBar
         }
     }
