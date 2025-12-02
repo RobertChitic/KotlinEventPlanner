@@ -27,7 +27,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
     private var editingEventId: String? = null
 
     // Table
-    private val tableModel = object : DefaultTableModel(arrayOf("Title", "Date", "Time", "Venue", "Occupancy"), 0) {
+    private val tableModel = object : DefaultTableModel(arrayOf("Title", "Date", "Time", "Duration", "Venue", "Occupancy"), 0) {
         override fun isCellEditable(row: Int, column: Int) = false
     }
     private val eventTable = JTable(tableModel)
@@ -130,7 +130,7 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
 
         // Update Table
         UIStyles.styleTable(eventTable)
-        eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
+        eventTable.columnModel.getColumn(5).cellRenderer = CapacityCellRenderer()
 
         // Repaint
         this.revalidate()
@@ -151,11 +151,6 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         header.add(tools, BorderLayout.EAST)
 
         card.add(header, BorderLayout.NORTH)
-
-        UIStyles.styleTable(eventTable)
-        eventTable.rowSorter = tableSorter
-        eventTable.columnModel.getColumn(4).cellRenderer = CapacityCellRenderer()
-
         card.add(UIStyles.createScrollPane(eventTable), BorderLayout.CENTER)
         return card
     }
@@ -404,9 +399,22 @@ class EventPanel(private val eventManager: EventManager) : JPanel() {
         tableModel.rowCount = 0
         val dF = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val tF = DateTimeFormatter.ofPattern("HH:mm")
+
         displayedEvents = eventManager.getAllEvents()
+
         displayedEvents.forEach { e ->
-            tableModel.addRow(arrayOf(e.title, e.dateTime.format(dF), e.dateTime.format(tF), e.venue.name, "${e.getCurrentCapacity()}/${e.maxParticipants}"))
+            val duration = "${e.duration.toHours()}h ${e.duration.toMinutesPart()}m"
+
+            tableModel.addRow(
+                arrayOf(
+                    e.title,
+                    e.dateTime.format(dF),
+                    e.dateTime.format(tF),
+                    duration,
+                    e.venue.name,
+                    "${e.getCurrentCapacity()}/${e.maxParticipants}"
+                )
+            )
         }
     }
 
