@@ -8,7 +8,10 @@ import javax.swing.table.DefaultTableCellRenderer
 
 object UIStyles {
 
-    // === THEME DEFINITION ===
+    /**
+     * Data class representing a UI theme with various color properties.
+     * accent colors are predefined for consistency across themes.
+     */
     data class Theme(
         val isDark: Boolean,
         val background: Color,
@@ -21,7 +24,6 @@ object UIStyles {
         val tableBorder: Color,
         val tableSelection: Color,
 
-        // Accents
         val accentGreen: Color = Color(30, 215, 96),
         val accentBlue: Color = Color(65, 105, 225),
         val accentRed: Color = Color(225, 50, 50),
@@ -30,7 +32,9 @@ object UIStyles {
         val accentPink: Color = Color(255, 105, 180)
     )
 
-    // === PRESETS ===
+    /**
+     * Predefined Dark and Light themes with specific color values.
+     */
     private val DarkTheme = Theme(
         isDark = true,
         background = Color(18, 18, 18),
@@ -44,6 +48,9 @@ object UIStyles {
         tableSelection = Color(50, 50, 50)
     )
 
+    /**
+     * predefined Light theme with specific color values.
+     */
     private val LightTheme = Theme(
         isDark = false,
         background = Color(240, 242, 245),
@@ -57,22 +64,36 @@ object UIStyles {
         tableSelection = Color(230, 240, 255)
     )
 
-    // === STATE MANAGEMENT ===
+    /**
+     * Current theme in use, initialized to DarkTheme.
+     */
     var current: Theme = DarkTheme
         private set
 
+    /**
+     * List of listeners to notify when the theme changes.
+     */
     private val listeners = mutableListOf<() -> Unit>()
 
+    /**
+     * Registers a listener to be notified when the theme changes.
+     */
     fun addThemeListener(listener: () -> Unit) {
         listeners.add(listener)
     }
 
+    /**
+     * Toggles between Dark and Light themes and notifies listeners.
+     */
     fun toggleTheme() {
         current = if (current == DarkTheme) LightTheme else DarkTheme
         listeners.forEach { it() }
     }
 
-    // === ACCESSORS (Dynamic) ===
+    /**
+     * Exposed color properties for easy access to the current theme's colors.
+     * Panels uses these properties to style components consistently.
+     */
     val background get() = current.background
     val cardBackground get() = current.cardBackground
     val inputBackground get() = current.inputBackground
@@ -90,14 +111,16 @@ object UIStyles {
     val accentPurple get() = current.accentPurple
     val accentPink get() = current.accentPink
 
-    // === FONTS ===
     val fontHeader = Font("Segue UI", Font.BOLD, 26)
     val fontSection = Font("Segue UI", Font.BOLD, 12)
     val fontBody = Font("Segue UI", Font.PLAIN, 14)
     val fontBold = Font("Segue UI", Font.BOLD, 14)
 
-    // === COMPONENT FACTORIES ===
 
+    /**
+     * create a large header at the top of panels
+     * Events, Venues, Participants, Statistics
+     */
     fun createHeaderLabel(text: String): JLabel {
         return JLabel(text).apply {
             font = fontHeader
@@ -106,6 +129,10 @@ object UIStyles {
         }
     }
 
+    /**
+     * create a section label to separate different sections in forms
+     * DIRECTORY, REGISTER NEW
+     */
     fun createSectionLabel(text: String): JLabel {
         return JLabel(text.uppercase()).apply {
             font = fontSection
@@ -114,6 +141,9 @@ object UIStyles {
         }
     }
 
+    /**
+     * create a standard label for form fields
+     */
     fun createLabel(text: String): JLabel {
         return JLabel(text).apply {
             font = fontBody
@@ -121,6 +151,10 @@ object UIStyles {
         }
     }
 
+    /**
+     * create a styled text field for user input
+     * uses the current theme's colors and fonts
+     */
     fun createTextField(columns: Int = 15): JTextField {
         return JTextField(columns).apply {
             font = fontBody
@@ -134,6 +168,11 @@ object UIStyles {
         }
     }
 
+    /**
+     * create a styled text area for multi-line user input
+     * uses the current theme's colors and fonts
+     * border matches text fields for consistency with tableBorder
+     */
     fun createTextArea(rows: Int = 4, cols: Int = 20): JTextArea {
         return JTextArea(rows, cols).apply {
             font = fontBody
@@ -146,8 +185,10 @@ object UIStyles {
         }
     }
 
-    // FIXED: Removed the call to styleComboBox() here.
-    // We only set basic properties. Full styling happens in applyTheme() when L&F is ready.
+    /**
+     * create a styled combo box for dropdown selections
+     * uses the current theme's colors and fonts
+     */
     fun createComboBox(): JComboBox<Any> {
         val combo = JComboBox<Any>()
         combo.font = fontBody
@@ -156,9 +197,10 @@ object UIStyles {
         return combo
     }
 
-    // FIXED: Deep styling with Custom Renderer to fix white dropdowns
+    /**
+     * apply consistent styling to an existing combo box
+     */
     fun styleComboBox(combo: JComboBox<*>) {
-        // 1. Style Main Component
         combo.background = inputBackground
         combo.foreground = textPrimary
         combo.border = BorderFactory.createCompoundBorder(
@@ -166,7 +208,9 @@ object UIStyles {
             EmptyBorder(4, 8, 4, 8)
         )
 
-        // 2. Custom Renderer for Dropdown Items
+        /**
+         * Custom renderer to style dropdown items
+         */
         combo.setRenderer(object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
                 list: JList<*>?,
@@ -177,7 +221,6 @@ object UIStyles {
             ): Component {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
 
-                // Dynamic Item Colors
                 background = if (isSelected) tableSelection else inputBackground
                 foreground = textPrimary
 
@@ -186,22 +229,35 @@ object UIStyles {
             }
         })
 
-        // 3. Ensure editor background updates
+        /**
+         * ensure the editor component is also styled
+         */
         val editor = combo.editor.editorComponent
         if (editor is JComponent) {
             editor.background = inputBackground
             editor.foreground = textPrimary
         }
 
+        /**
+         * repaint to apply changes
+         */
         combo.repaint()
     }
 
-    // Buttons
+    /**
+     * create primary, secondary, danger, and accent button
+     * buttons have rounded corners and hover effects
+     * uses the current theme's colours and fonts
+     */
     fun createPrimaryButton(text: String): JButton = createStyledButton(text, accentGreen, Color.BLACK)
     fun createSecondaryButton(text: String): JButton = createStyledButton(text, Color(100, 100, 100), Color.WHITE)
     fun createDangerButton(text: String): JButton = createStyledButton(text, accentRed, Color.WHITE)
     fun createAccentButton(text: String): JButton = createStyledButton(text, accentBlue, Color.WHITE)
 
+    /**
+     * helper method to create a styled button with custom colours
+     * applies rounded corners and hover effects
+     */
     private fun createStyledButton(text: String, bgColor: Color, fgColor: Color): JButton {
         return object : JButton(text) {
             init {
@@ -224,8 +280,13 @@ object UIStyles {
         }
     }
 
-    // --- CARDS & TABLES ---
 
+    /**
+     * create a card panel
+     * rounded corners and background in cardBackground colour
+     * padding inside the panel for content
+     * used throughout the app for consistent card styling
+     */
     fun createCardPanel(): JPanel {
         return object : JPanel(BorderLayout()) {
             override fun paintComponent(g: Graphics) {
@@ -240,6 +301,11 @@ object UIStyles {
         }
     }
 
+    /**
+     * apply consistent styling to a JTable
+     * row height, fonts, colours, selection behavior
+     * panel will call this method to style tables consistently
+     */
     fun styleTable(table: JTable) {
         table.apply {
             background = cardBackground
@@ -264,6 +330,10 @@ object UIStyles {
         }
     }
 
+    /**
+     * create a styled JScrollPane for tables and lists
+     * uses current theme's colours for border and background
+     */
     fun createScrollPane(view: Component): JScrollPane {
         return JScrollPane(view).apply {
             border = BorderFactory.createLineBorder(tableBorder)

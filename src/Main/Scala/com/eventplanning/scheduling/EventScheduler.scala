@@ -15,52 +15,101 @@ object EventScheduler {
                              assignedDateTime: LocalDateTime
                            )
 
+  /**
+   * outcome of the scheduling process
+   * either Success with the scheduled events
+   * or Failure with a message and list of problematic events
+   */
   sealed trait ScheduleResult
   private case class Success(schedule: List[ScheduledEvent]) extends ScheduleResult
   private case class Failure(message: String, problematicEvents: List[Event]) extends ScheduleResult
 
-  // Configurable constraints for the auto-scheduler
+  /**
+   * We set it so it looks for available slots within the next 7 days
+   * in 30-minute increments
+   */
+  private val SEARCH_DAYS = 7
+  private val SLOT_MINUTES = 30
+  private val MAX_SCHEDULING_ATTEMPTS: Int =
+    SEARCH_DAYS * 24 * (60 / SLOT_MINUTES)
+
   private val WORK_DAY_START = LocalTime.of(8, 0)
   private val WORK_DAY_END = LocalTime.of(20, 0)
 
+  /**
+   *this is what ScalaBridge calls
+   *param events: list of events to schedule
+   *param venues: list of available venues
+   *return: ScheduleResult indicating success or failure
+   */
   def scheduleEvents(
                       events: java.util.List[Event],
                       venues: java.util.List[Venue]
                     ): ScheduleResult = {
 
-    // 1. Input Validation
+    /**
+     * basic null and empty checks
+     */
     if (events == null || venues == null) return Failure("Input lists cannot be null", List.empty)
-
+    /**
+     * convert Java event and venue lists to Scala lists
+     */
     val eventList = events.asScala.toList
     val venueList = venues.asScala.toList
 
+    /**
+     * if there are no events, return empty schedule
+     * but if there are no venues, return failure
+     */
     if (eventList.isEmpty) return Success(List.empty)
     if (venueList.isEmpty) return Failure("No venues available to schedule events.", eventList)
 
-    // 2. Heuristic Sort: Schedule longest events first (Bin Packing heuristic)
+    /**
+     * sort events by duration descending to try to fit longer events first
+     */
     val sortedEvents = eventList.sortBy(_.getDuration).reverse
 
+    /**
+     * start the recursive scheduling process
+     * remainingEvents: sortedEvents
+     * availableVenues: venueList
+     * scheduledSoFar: empty list
+     */
     scheduleEventsRecursive(sortedEvents, venueList, List.empty)
   }
 
+  /**
+   *tail-recursive method to schedule events one by one
+   * remainingEvents: list of events yet to be scheduled
+   * availableVenues: list of venues to choose from
+   * scheduledSoFar: list of successfully scheduled events
+   */
   @tailrec
   private def scheduleEventsRecursive(
                                        remainingEvents: List[Event],
                                        availableVenues: List[Venue],
                                        scheduledSoFar: List[ScheduledEvent]
                                      ): ScheduleResult = {
-
+    /**
+     * base case: if no remaining events, return success with scheduled events
+     */
     remainingEvents match {
       case Nil =>
-        Success(scheduledSoFar)
+        Success(scheduledSoFar.reverse)
 
+      /**
+       * recursive case: try to schedule the next event
+       */
       case event :: restEvents =>
-        // Attempt to schedule this event.
-        // It tries the preferred time first, then searches forward if needed.
         findBestSlotForEvent(event, availableVenues, scheduledSoFar) match {
           case Some(scheduledEvent) =>
-            scheduleEventsRecursive(restEvents, availableVenues, scheduledSoFar :+ scheduledEvent)
+            val updated = scheduledEvent :: scheduledSoFar
+            scheduleEventsRecursive(restEvents, availableVenues, updated)
 
+          /**
+           * could not find a slot for this event
+           * return failure with message and remaining events
+           */
           case None =>
             Failure(
               s"Conflict: '${event.getTitle}' (Needs Cap: ${event.getMaxParticipants}) could not be booked.\n" +
@@ -72,8 +121,9 @@ object EventScheduler {
   }
 
   /**
-   * Tries to find a venue for the event.
-   * If the event's current time is blocked, it hunts for a new time slot.
+   *tries to find the best venue and time slot for the given event
+   * filters venues by capacity and sorts by smallest capacity first
+   * try to find a free slot in each venue
    */
   private def findBestSlotForEvent(
                                     event: Event,
@@ -81,17 +131,22 @@ object EventScheduler {
                                     existingSchedule: List[ScheduledEvent]
                                   ): Option[ScheduledEvent] = {
 
-    // Filter venues capable of holding the event
+    /**
+     * makes sure it can hold the event's participants
+     */
     val capableVenues = venues
       .filter(_.getCapacity >= event.getMaxParticipants)
-      .sortBy(_.getCapacity) // Use smallest capable venue first (efficiency)
+      .sortBy(_.getCapacity)
 
-    // Try to find a slot in any capable venue
+/**
+ * looks for a free slot one by one in the capable venues
+ */
     findSlotInVenues(event, capableVenues, existingSchedule)
   }
 
   /**
-   * Iterates through capable venues to find a time slot.
+   *find a free slot for the event in the list of venues
+   * tries each venue in order until a slot is found or all venues exhausted
    */
   @tailrec
   private def findSlotInVenues(
@@ -100,20 +155,28 @@ object EventScheduler {
                                 schedule: List[ScheduledEvent]
                               ): Option[ScheduledEvent] = {
     venues match {
-      case Nil => None // No venues work
+
+      /**
+       * no more venues to try
+       * return None
+       */
+      case Nil => None
       case venue :: tail =>
-        // For this venue, try to find a time slot starting at event.dateTime
         findNextTimeSlot(event, venue, event.getDateTime, schedule, 0) match {
+
+          /**
+           * found a time slot in this venue
+           * return the scheduled event
+           */
           case Some(time) => Some(ScheduledEvent(event, venue, time))
-          case None => findSlotInVenues(event, tail, schedule) // Try next venue
+          case None => findSlotInVenues(event, tail, schedule)
         }
     }
   }
 
   /**
-   * Recursively searches for a time slot within a specific venue.
-   * Starts at `candidateTime` and moves forward in 30-minute increments if blocked.
-   * NOTE: Uses if-else chain to satisfy @tailrec requirements (no explicit return statements).
+   *recursively looks for the next available time slot for the event in the venue
+   * starts from candidateTime and checks for conflicts
    */
   @tailrec
   private def findNextTimeSlot(
@@ -124,24 +187,38 @@ object EventScheduler {
                                 attempts: Int
                               ): Option[LocalDateTime] = {
 
-    if (attempts > 336) {
-      // Limit reached (e.g., 7 days of searching)
+    /**
+     * stop if exceeded max attempts
+     * (7 days worth of 30-minute slots)
+     */
+    if (attempts > MAX_SCHEDULING_ATTEMPTS) {
       None
-    } else if (candidateTime.toLocalTime.isAfter(WORK_DAY_END.minus(event.getDuration))) {
-      // Case 1: Outside working hours -> Jump to 8 AM next day
+    }
+
+    /**
+     * stop if outside working hours 8pm - move to next day morning
+     */
+    else if (candidateTime.toLocalTime.isAfter(WORK_DAY_END.minus(event.getDuration))) {
+
       val nextMorning = candidateTime.plusDays(1).withHour(WORK_DAY_START.getHour).withMinute(0)
       findNextTimeSlot(event, venue, nextMorning, schedule, attempts + 1)
+
+      /**
+       * if no conflict, return this candidate time
+       */
     } else if (!hasConflict(candidateTime, event.getDuration, venue, schedule)) {
-      // Case 2: Slot is free -> Return it
+
       Some(candidateTime)
     } else {
-      // Case 3: Conflict found -> Move forward 30 minutes
+      /**
+       * conflict found, try next 30-minute slot
+       */
       findNextTimeSlot(event, venue, candidateTime.plusMinutes(30), schedule, attempts + 1)
     }
   }
 
   /**
-   * Checks if a specific time slot at a specific venue overlaps with the existing schedule.
+   *checks if the proposed time slot conflicts with existing scheduled events in the venue
    */
   private def hasConflict(
                            start: LocalDateTime,
@@ -152,11 +229,20 @@ object EventScheduler {
     val end = start.plus(duration)
 
     existingSchedule.exists { scheduled =>
-      scheduled.assignedVenue.getId == venue.getId &&
+
+      /**
+       * only events in the same venue can conflict
+       * check for time overlap
+       */
+    scheduled.assignedVenue.getId == venue.getId &&
         timeOverlap(start, end, scheduled.assignedDateTime, scheduled.assignedDateTime.plus(scheduled.event.getDuration))
     }
   }
 
+  /**
+   *return true if the two time intervals overlap
+   * [start1, end1] and [start2, end2]
+   */
   private def timeOverlap(
                            start1: LocalDateTime,
                            end1: LocalDateTime,
@@ -166,11 +252,20 @@ object EventScheduler {
     start1.isBefore(end2) && end1.isAfter(start2)
   }
 
-  // Helper for Java Interop (Reflection Bridge)
+  /**
+   *converts ScheduleResult to a Java Map for interoperability
+   * ScalaBridge can easily read and create SchedulerResult,
+   * but to return to Java code, we convert it to a Map
+   */
   def scheduleToMap(result: ScheduleResult): java.util.Map[String, Object] = {
     val map = new java.util.HashMap[String, Object]()
 
     result match {
+
+      /**
+       * on success, put success=true and the schedule details
+       * each scheduled event includes eventId, eventTitle, venue, dateTime
+       */
       case Success(schedule) =>
         map.put("success", java.lang.Boolean.TRUE)
         val scheduleList = new java.util.ArrayList[java.util.Map[String, Object]]()
@@ -184,6 +279,9 @@ object EventScheduler {
         }
         map.put("schedule", scheduleList)
 
+      /**
+       * on failure, put success=false, message, and count of failed events
+       */
       case Failure(message, problematicEvents) =>
         map.put("success", java.lang.Boolean.FALSE)
         map.put("message", message)

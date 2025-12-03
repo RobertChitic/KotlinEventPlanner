@@ -19,7 +19,6 @@ class MainWindow(private val eventManager: EventManager) {
     private val cardLayout = CardLayout()
     private val contentPanel = JPanel(cardLayout)
 
-    // Panels
     private val statsPanel = StatisticsPanel(eventManager)
     private val venuePanel = VenuePanel(eventManager)
     private val eventPanel = EventPanel(eventManager)
@@ -30,23 +29,36 @@ class MainWindow(private val eventManager: EventManager) {
     private val navGroup = ButtonGroup()
     private val sidebar = createSidebar()
 
+    /**
+     * shows the main window
+     * sets up frame properties and layout
+     * adds sidebar and content panels
+     * registers theme listener to update UI on theme change
+     * apply theme on initial display
+     */
     fun show() {
         setupFrame()
         setupLayout()
 
-        // Listen for future theme changes
         UIStyles.addThemeListener { applyTheme() }
 
+        /**
+         * Show the initial panel (Events) and make frame visible
+         * Use invokeLater to ensure theme is applied after UI is visible
+         */
         cardLayout.show(contentPanel, "Events")
         frame.isVisible = true
 
-        // FIXED: Apply theme AFTER window is visible.
-        // This ensures FlatLaf is fully active before we force ComboBox rendering styles.
         SwingUtilities.invokeLater {
             applyTheme()
         }
     }
 
+    /**
+     * Sets up the main application frame properties
+     * Uses FlatLaf dark theme by default
+     * Sets default close operation, size, and centers on screen
+     */
     private fun setupFrame() {
         FlatDarkLaf.setup()
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -54,6 +66,11 @@ class MainWindow(private val eventManager: EventManager) {
         frame.setLocationRelativeTo(null)
     }
 
+    /**
+     * configures the layout of the main window
+     * Left: Sidebar with navigation buttons
+     * Center: Content panel with card layout for different sections
+     */
     private fun setupLayout() {
         frame.layout = BorderLayout()
         contentPanel.background = UIStyles.background
@@ -65,29 +82,36 @@ class MainWindow(private val eventManager: EventManager) {
         contentPanel.add(registrationPanel, "Registration")
         contentPanel.add(statsPanel, "Analytics")
 
+        /**
+         * add sidebar to the left and content panel to the center of the frame
+         */
         frame.add(sidebar, BorderLayout.WEST)
         frame.add(contentPanel, BorderLayout.CENTER)
     }
 
+    /**
+     * applies the current theme to all UI components
+     * updates FlatLaf theme, either dark or light, and repaints the frame
+     * refreshes colors of sidebar, navigation buttons, and all content panels
+     * delegates applyTheme() to all sub-panels to update their styles
+     */
     private fun applyTheme() {
-        // 1. Update the Library Theme (FlatLaf)
         if (UIStyles.current.isDark) FlatDarkLaf.setup() else FlatLightLaf.setup()
 
-        // 2. Refresh the whole component tree
         FlatLaf.updateUI()
         SwingUtilities.updateComponentTreeUI(frame)
 
-        // 3. RE-APPLY Custom Colors
         contentPanel.background = UIStyles.background
         sidebar.repaint()
 
-        // 4. Update Navigation Button Colors
+        /**
+         * update nav button colors based on selection state
+         */
         navButtons.forEach {
             if (!it.isSelected) it.foreground = UIStyles.textSecondary
             else it.foreground = Color.WHITE
         }
 
-        // 5. Push Theme Down to Panels
         eventPanel.applyTheme()
         venuePanel.applyTheme()
         participantPanel.applyTheme()
@@ -97,6 +121,12 @@ class MainWindow(private val eventManager: EventManager) {
         frame.repaint()
     }
 
+    /**
+     * builds the sidebar panel with navigation and action buttons
+     * at the top is the name of the application
+     * middle contains navigation buttons to switch content panels
+     * bottom contains action buttons for generating schedule, toggling theme, saving data, and exiting
+     */
     private fun createSidebar(): JPanel {
         val sidebarPanel = object : JPanel(BorderLayout()) {
             override fun paintComponent(g: Graphics) {
@@ -124,6 +154,9 @@ class MainWindow(private val eventManager: EventManager) {
         menuLabel.border = EmptyBorder(0, 10, 15, 0)
         navPanel.add(menuLabel)
 
+        /**
+         * adds a navigation button to the sidebar
+         */
         fun addNav(text: String, target: String, default: Boolean = false) {
             val btn = object : JToggleButton(text) {
                 init {
@@ -141,6 +174,10 @@ class MainWindow(private val eventManager: EventManager) {
                     alignmentX = Component.LEFT_ALIGNMENT
                     if (default) isSelected = true
                 }
+
+                /**
+                 * custom paintComponent to draw rounded background for selected and hovered states
+                 */
                 override fun paintComponent(g: Graphics) {
                     val g2 = g as Graphics2D
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -159,6 +196,11 @@ class MainWindow(private val eventManager: EventManager) {
                     super.paintComponent(g)
                 }
             }
+            /**
+             * navigation button action listener to switch content panels
+             * refreshes statistics panel when Analytics is selected
+             * repaints all nav buttons to update their styles
+             */
             btn.addActionListener { e ->
                 cardLayout.show(contentPanel, e.actionCommand)
                 if (e.actionCommand == "Analytics") statsPanel.refreshStats()
@@ -170,7 +212,11 @@ class MainWindow(private val eventManager: EventManager) {
             navPanel.add(Box.createVerticalStrut(5))
         }
 
-        addNav("Events", "Events", true) // Default TRUE
+        /**
+         * name of the navigation buttons and their target panels
+         * plus the default selected button (Events)
+         */
+        addNav("Events", "Events", true)
         addNav("Venues", "Venues")
         addNav("Participants", "Participants")
         addNav("Registration", "Registration")
@@ -181,6 +227,10 @@ class MainWindow(private val eventManager: EventManager) {
         bottomPanel.isOpaque = false
         bottomPanel.border = EmptyBorder(20, 25, 40, 25)
 
+        /**
+         * adds an action button to the bottom of the sidebar
+         * styles the button with hover effects
+         */
         fun addAction(text: String, action: ActionListener) {
             val btn = JButton(text)
             btn.horizontalAlignment = SwingConstants.LEFT
@@ -199,6 +249,9 @@ class MainWindow(private val eventManager: EventManager) {
             bottomPanel.add(btn)
         }
 
+        /**
+         * name of the action buttons and their corresponding actions
+         */
         addAction("Generate Schedule") { generateSchedule() }
         addAction("Toggle Theme") { UIStyles.toggleTheme() }
         addAction("Save Database") { saveAllData() }
@@ -211,7 +264,10 @@ class MainWindow(private val eventManager: EventManager) {
         return sidebarPanel
     }
 
-    // --- LOGIC ---
+    /**
+     * saves all data using eventManager in a background worker
+     * shows success or error message dialog based on result
+     */
     private fun saveAllData() {
         val worker = object : SwingWorker<Boolean, Void>() {
             override fun doInBackground(): Boolean = eventManager.saveAllData()
@@ -223,6 +279,10 @@ class MainWindow(private val eventManager: EventManager) {
         worker.execute()
     }
 
+    /**
+     * prompts user to save data before exiting
+     * exits application with status code 0
+     */
     private fun exitApplication() {
         if (JOptionPane.showConfirmDialog(frame, "Save before exiting?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             eventManager.saveAllData()
@@ -230,6 +290,12 @@ class MainWindow(private val eventManager: EventManager) {
         exitProcess(0)
     }
 
+    /**
+     * trigger scala schedule generation using ScalaBridge
+     * collects all events and venues from eventManager
+     * runs in background worker to avoid UI blocking
+     * displays schedule result or error message upon completion
+     */
     private fun generateSchedule() {
         val events = eventManager.getAllEvents()
         val venues = eventManager.getAllVenues()
@@ -242,6 +308,11 @@ class MainWindow(private val eventManager: EventManager) {
         worker.execute()
     }
 
+    /**
+     * displays the schedule result in a dialog
+     * if success, shows formatted schedule in a text area
+     * if error, shows error message dialog
+     */
     private fun displayScheduleResult(result: ScalaBridge.SchedulerResult) {
         when (result) {
             is ScalaBridge.SchedulerResult.Success -> {

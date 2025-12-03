@@ -4,9 +4,8 @@ import java.time.LocalDateTime
 import java.time.Duration
 import java.time.format.DateTimeFormatter
 
-/**
- * Represents an event in the event planning system.
- * Handles participant registration with capacity enforcement.
+/** val (value) are used as once an event is created these properties
+ * will be unable to change directly which protects the project keeping it more robust.
  */
 data class Event(
     val id: String,
@@ -22,6 +21,10 @@ data class Event(
         private val DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     }
 
+    /**
+     * The init block performs validation on the input parameters,
+     * by checking conditions (require the id is not blank).
+     */
     init {
         require(id.isNotBlank()) { "ID must not be blank." }
         require(title.isNotBlank()) { "Title must not be blank." }
@@ -41,9 +44,8 @@ data class Event(
     fun getRegisteredParticipants(): List<Participant> = registeredParticipants.toList()
 
     /**
-     * Attempts to register a new participant for the event.
-     * @param participant The participant to register
-     * @return RegistrationResult indicating success or failure reason
+     * Whilst registering a participant, checks if statements instead of a true/false
+     * allows end users to know why their registration failed
      */
     fun registerParticipant(participant: Participant): RegistrationResult {
         if (isFull()) {
@@ -60,7 +62,6 @@ data class Event(
 
     /**
      * Unregisters a participant from the event.
-     * @param participant The participant to unregister
      * @return true if participant was found and removed, false otherwise
      */
     fun unregisterParticipant(participant: Participant): Boolean {
@@ -95,24 +96,19 @@ data class Event(
 
     /**
      * Checks if this event conflicts with another event (same venue, overlapping time).
+     * uses StartA < EndB && EndA > StartB logic to determine overlap.
      */
     fun conflictsWith(other: Event): Boolean {
-        // 1. Identity Check: An event does not conflict with itself
         if (this.id == other.id) {
             return false
         }
 
-        // 2. Venue Check: Different venues cannot conflict
         if (this.venue.id != other.venue.id) {
             return false
         }
-
-        // 3. Time Overlap Calculation
         val thisEnd = this.getEndTime()
         val otherEnd = other.getEndTime()
 
-        // Logic: (StartA < EndB) and (EndA > StartB)
-        // This allows back-to-back events (e.g. A ends 10:00, B starts 10:00)
         return this.dateTime < otherEnd && thisEnd > other.dateTime
     }
 
@@ -132,7 +128,7 @@ data class Event(
 
 /**
  * Sealed class representing the result of a registration attempt.
- * Provides type-safe error handling.
+ * Provides type-safe error handling. by defining specific a strict set of possible outcomes.
  */
 sealed class RegistrationResult {
     object Success : RegistrationResult()

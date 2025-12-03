@@ -10,27 +10,29 @@ import java.time.format.DateTimeFormatter
 
 class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
-    // Data Models
     private val registeredListModel = DefaultListModel<String>()
     private val registeredList = JList(registeredListModel)
 
-    // Styled Inputs
     private val participantCombo = UIStyles.createComboBox()
     private val eventCombo = UIStyles.createComboBox()
     private val eventDetailsArea = UIStyles.createTextArea(10, 30)
 
-    // Theme Tracking
     private val formLabels = mutableListOf<JLabel>()
     private val headerLabel = UIStyles.createHeaderLabel("Registration Desk")
     private val sectionForm = UIStyles.createSectionLabel("NEW REGISTRATION")
     private val sectionList = UIStyles.createSectionLabel("ATTENDEE LIST")
     private val sectionDetails = UIStyles.createSectionLabel("EVENT DETAILS")
 
-    // Styled Buttons
     private val registerBtn = UIStyles.createPrimaryButton("Register")
     private val unregisterBtn = UIStyles.createDangerButton("Unregister")
     private val refreshBtn = UIStyles.createSecondaryButton("Refresh Data")
 
+    /**
+     * setup header at the top
+     * left panel with form and registered list
+     * right panel with event details
+     * and then apply theme and listeners
+     */
     init {
         layout = BorderLayout(0, 20)
         isOpaque = false
@@ -39,12 +41,18 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
         val content = JPanel(GridBagLayout())
         content.isOpaque = false
-        val gbc = GridBagConstraints().apply { fill = GridBagConstraints.BOTH; insets = Insets(0, 0, 0, 20) }
+        val gbc = GridBagConstraints().apply {
+            fill = GridBagConstraints.BOTH
+            insets = Insets(0, 0, 0, 20) }
 
-        gbc.gridx = 0; gbc.weightx = 0.6; gbc.weighty = 1.0
+        gbc.gridx = 0
+        gbc.weightx = 0.6
+        gbc.weighty = 1.0
         content.add(createLeftPanel(), gbc)
 
-        gbc.gridx = 1; gbc.weightx = 0.4; gbc.insets = Insets(0, 0, 0, 0)
+        gbc.gridx = 1
+        gbc.weightx = 0.4
+        gbc.insets = Insets(0, 0, 0, 0)
         content.add(createDetailsCard(), gbc)
 
         add(content, BorderLayout.CENTER)
@@ -54,6 +62,10 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         refreshCombos()
     }
 
+    /**
+     * Called when the theme is changed to update colors
+     * applies colors from UIStyles to all components
+     */
     fun applyTheme() {
         headerLabel.foreground = UIStyles.textPrimary
         sectionForm.foreground = UIStyles.textMuted
@@ -62,11 +74,9 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
 
         formLabels.forEach { it.foreground = UIStyles.textSecondary }
 
-        // FIXED: Apply deep styling with custom renderer
         UIStyles.styleComboBox(participantCombo)
         UIStyles.styleComboBox(eventCombo)
 
-        // List
         registeredList.apply {
             background = UIStyles.cardBackground
             foreground = UIStyles.textPrimary
@@ -74,19 +84,25 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
             selectionForeground = UIStyles.accentGreen
         }
 
-        // Text Area
         eventDetailsArea.background = UIStyles.inputBackground
         eventDetailsArea.foreground = UIStyles.textPrimary
         eventDetailsArea.border = BorderFactory.createLineBorder(UIStyles.tableBorder)
 
+        /**
+         * Repaint is called to ensure all components reflect the new theme
+         */
         this.repaint()
     }
 
+    /**
+     * creates the left panel with form and registered list
+     * uses GridBagLayout for flexible arrangement
+     * adds components to the panel including labels, combos, buttons, and list
+     */
     private fun createLeftPanel(): JPanel {
         val panel = JPanel(BorderLayout(0, 20))
         panel.isOpaque = false
 
-        // 1. Registration Form Card
         val formCard = UIStyles.createCardPanel()
         formCard.add(sectionForm, BorderLayout.NORTH)
 
@@ -104,6 +120,10 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
             form.add(comp, gbc)
         }
 
+        /**
+         * adds the participant and event selection combos to the form
+         * using the addIn helper function for consistent layout
+         */
         addIn("Select Participant:", participantCombo)
         addIn("Select Event:", eventCombo)
 
@@ -111,15 +131,21 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         btnPanel.isOpaque = false
         btnPanel.add(registerBtn); btnPanel.add(unregisterBtn); btnPanel.add(refreshBtn)
 
-        gbc.gridy = y++; gbc.weighty = 1.0
-        form.add(JPanel().apply { isOpaque = false }, gbc)
-        gbc.gridy = y++; gbc.weighty = 0.0
+        /**
+         * adds a spacer panel to push buttons to the bottom
+         * then adds the button panel to the form
+         */
+        gbc.gridy = y++
+        gbc.weighty = 1.0
+        form.add(JPanel().apply {
+            isOpaque = false }, gbc)
+        gbc.gridy = y++
+        gbc.weighty = 0.0
         form.add(btnPanel, gbc)
 
         formCard.add(form, BorderLayout.CENTER)
         panel.add(formCard, BorderLayout.NORTH)
 
-        // 2. Attendee List Card
         val listCard = UIStyles.createCardPanel()
         listCard.add(sectionList, BorderLayout.NORTH)
         registeredList.font = UIStyles.fontBody
@@ -130,6 +156,11 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         return panel
     }
 
+    /**
+     * creates the event details card on the right side
+     * adds the section label and details text area
+     * styles the text area for monospaced font and non-editable
+     */
     private fun createDetailsCard(): JPanel {
         val card = UIStyles.createCardPanel()
         card.add(sectionDetails, BorderLayout.NORTH)
@@ -139,7 +170,11 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         return card
     }
 
-    // --- LOGIC ---
+    /**
+     * sets up action listeners for buttons and combo boxes
+     * handles registration, un registration, refreshing data, and event selection changes
+     * updates the registered list and event details when an event is selected
+     */
     private fun setupListeners() {
         refreshBtn.addActionListener { refreshCombos() }
         registerBtn.addActionListener { registerParticipant() }
@@ -153,6 +188,12 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         }
     }
 
+    /**
+     * Registers the selected participant for the selected event
+     * performs validation checks for selection, event capacity, and existing registration
+     * checks event capacity and existing registration
+     * updates domain event and persists changes via EventManager
+     */
     private fun registerParticipant() {
         val participantItem = participantCombo.selectedItem as? ParticipantItem
         val eventItem = eventCombo.selectedItem as? EventItem
@@ -172,6 +213,12 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         worker.execute()
     }
 
+    /**
+     * Unregisters the selected participant from the selected event
+     * performs validation checks for selection
+     * updates domain event and persists changes via EventManager
+     * updates the registered list and event details upon success
+     */
     private fun unregisterParticipant() {
         val participantItem = participantCombo.selectedItem as? ParticipantItem
         val eventItem = eventCombo.selectedItem as? EventItem
@@ -184,11 +231,18 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         worker.execute()
     }
 
+    /**
+     * updates the registered participants list for the given event
+     */
     private fun updateRegisteredList(event: Event) {
         registeredListModel.clear()
         event.getRegisteredParticipants().forEach { p -> registeredListModel.addElement("• ${p.name} (${p.email})") }
     }
 
+    /**
+     * fills the event details text area with formatted information about the event
+     * includes title, date, venue, location, duration, description, status, occupancy, and available spots
+     */
     private fun updateEventDetails(event: Event) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         val hours = event.duration.toMinutes() / 60
@@ -209,9 +263,18 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
             appendLine("Occupancy: ${event.getCurrentCapacity()} / ${event.maxParticipants}")
             appendLine("Spots:     ${event.getAvailableSpots()}")
         }
+
+        /**
+         * sets caret position to the top to ensure details are visible from the start
+         */
         eventDetailsArea.caretPosition = 0
     }
 
+    /**
+     * reloads both participant and event combos from the EventManager
+     * participant combo is cleared and repopulated
+     * event combo is cleared and repopulated while preserving selection if possible
+     */
     private fun refreshCombos() {
         participantCombo.removeAllItems()
         eventManager.getAllParticipants().forEach { participantCombo.addItem(ParticipantItem(it)) }
@@ -226,9 +289,27 @@ class RegistrationPanel(private val eventManager: EventManager) : JPanel() {
         }
     }
 
+    /**
+     * wrapper class for participant combo box
+     * showing them as "Name (email)"
+     */
     private data class ParticipantItem(val participant: Participant) { override fun toString() = "${participant.name} (${participant.email})" }
+
+    /**
+     *wrapper class for event combo box
+     * showing them by title only
+     */
     private data class EventItem(val event: Event) { override fun toString() = event.title }
-    private fun showSuccess(msg: String) = JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE)
-    private fun showError(msg: String) = JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE)
-    private fun showInfo(msg: String) = JOptionPane.showMessageDialog(this, msg, "Info", JOptionPane.INFORMATION_MESSAGE)
+
+    /**
+     * shows a success message dialog
+     * shows an error message dialog
+     * shows an info message dialog
+     */
+    private fun showSuccess(msg: String) =
+        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE)
+    private fun showError(msg: String) =
+        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE)
+    private fun showInfo(msg: String) =
+        JOptionPane.showMessageDialog(this, msg, "Info", JOptionPane.INFORMATION_MESSAGE)
 }
