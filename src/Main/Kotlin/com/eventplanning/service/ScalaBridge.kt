@@ -106,14 +106,22 @@ object ScalaBridge {
             SlotFinderResult.Success(slots)
 
             /**
-             * if the scala class is not found or any other exception occurs
-             * return error instead of crashing the application/ui
+             * Enhanced error handling for reflection-based calls:
+             * - ClassNotFoundException: Scala code not compiled or not on classpath
+             * - NoSuchMethodException: Method signature mismatch (refactoring broke reflection)
+             * - InvocationTargetException: Exception thrown by Scala method itself
+             * - Other exceptions: Unexpected runtime errors
              */
         } catch (e: ClassNotFoundException) {
-            SlotFinderResult.Error("Scala SlotFinder not found.")
+            SlotFinderResult.Error("Scala SlotFinder class not found. Ensure Scala code is compiled and on the classpath.")
+        } catch (e: NoSuchMethodException) {
+            SlotFinderResult.Error("SlotFinder method signature mismatch. Expected: findAllAvailableSlots(List, List, int, LocalDateTime, Duration). Actual error: ${e.message}")
+        } catch (e: java.lang.reflect.InvocationTargetException) {
+            val cause = e.cause?.message ?: "Unknown Scala error"
+            SlotFinderResult.Error("SlotFinder Scala exception: $cause")
         } catch (e: Exception) {
             val cause = e.cause?.message ?: e.message ?: "Unknown error"
-            SlotFinderResult.Error("SlotFinder error: $cause")
+            SlotFinderResult.Error("SlotFinder unexpected error: $cause")
         }
     }
 
@@ -146,11 +154,18 @@ object ScalaBridge {
             parseSchedulerResult(resultMap)
 
             /**
-             * if the scala class is not found or any other exception occurs
+             * Enhanced error handling for reflection-based scheduler calls
              */
+        } catch (e: ClassNotFoundException) {
+            SchedulerResult.Error("Scala EventScheduler class not found. Ensure Scala code is compiled.", 0)
+        } catch (e: NoSuchMethodException) {
+            SchedulerResult.Error("EventScheduler method signature mismatch: ${e.message}", 0)
+        } catch (e: java.lang.reflect.InvocationTargetException) {
+            val cause = e.cause?.message ?: "Unknown Scala error"
+            SchedulerResult.Error("EventScheduler Scala exception: $cause", 0)
         } catch (e: Exception) {
             val cause = e.cause?.message ?: e.message ?: "Unknown error"
-            SchedulerResult.Error("Scheduler error: $cause", 0)
+            SchedulerResult.Error("Scheduler unexpected error: $cause", 0)
         }
     }
 

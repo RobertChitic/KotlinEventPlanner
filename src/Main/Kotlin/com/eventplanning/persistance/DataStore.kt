@@ -404,18 +404,14 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
 
                     /**
                      * in the case a venue is deleted from database but events still reference it
-                     * logs a warning and creates a placeholder Venue object with default values.
+                     * log a critical error and skip this corrupted event rather than creating fake data.
+                     * this prevents domain corruption and maintains data integrity.
                      */
                     if (venue == null) {
-                        System.err.println("Warning: Event '$eventId' references missing venue '$venueId'. Loading as placeholder.")
-                        venue = Venue(
-                            id = "unknown_venue",
-                            name = "UNKNOWN VENUE (Missing Data)",
-                            capacity = maxParticipants,
-                            location = "Unknown",
-                            address = "Unknown"
-                        )
+                        System.err.println("ERROR: Event '$eventId' references missing venue '$venueId'. Skipping corrupted event. Please fix the database referential integrity.")
+                        continue
                     }
+
                     /**
                      * construct a proper domain Event from database row.
                      * parses dateTime string into LocalDateTime object.
@@ -423,7 +419,7 @@ class DataStore(private val dbPath: String = "events.db") : Repository {
                      */
                     val event = Event(
                         id = eventId,
-                        title = rs.getString("title") + (if (venue.id == "unknown_venue") " [DATA ERROR]" else ""),
+                        title = rs.getString("title"),
                         dateTime = LocalDateTime.parse(rs.getString("dateTime"), dateTimeFormatter),
                         venue = venue,
                         description = rs.getString("description") ?: "",

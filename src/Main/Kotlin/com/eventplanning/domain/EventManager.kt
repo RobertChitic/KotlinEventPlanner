@@ -2,6 +2,14 @@ package com.eventplanning.domain
 
 import com.eventplanning.persistance.Repository
 
+/**
+ * EventManager handles all business logic for managing events, venues, and participants.
+ *
+ * THREAD SAFETY WARNING:
+ * This class is NOT thread-safe. All methods must be called from a single thread
+ * (typically the Swing Event Dispatch Thread) or externally synchronized.
+ * Concurrent access from multiple threads may cause data corruption or ConcurrentModificationException.
+ */
 class EventManager(private val repository: Repository) {
     private val venues = mutableListOf<Venue>()
     private val events = mutableListOf<Event>()
